@@ -846,7 +846,7 @@ function buildLevel(idx,opt={}){
     }
   }
   // point de contrôle
-  for(let d=0;d<30;d++){ const c=Math.floor(MAIN/2)+d; if(h[c]<99&&h[c-1]===h[c]&&grid[h[c]-1][c]==='.'&&grid[h[c]-1][c+1]==='.'){ cps.push({x:c*TS+4,y:h[c]*TS,on:false}); break; } }
+  [1/3,2/3].forEach(f=>{ for(let d=0;d<30;d++){ const c=Math.floor(MAIN*f)+d; if(h[c]<99&&h[c-1]===h[c]&&grid[h[c]-1][c]==='.'&&grid[h[c]-1][c+1]==='.'&&!enemies.some(e=>Math.abs(e.x/TS-c)<3)){ cps.push({x:c*TS+4,y:h[c]*TS,on:false}); break; } } });
   for(let r=0;r<10;r++) grid[r][LW-1]='P';
   const sup=z.ennemi.type==='supreme';
   const p={x:2*TS+1,y:h[2]*TS-20,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,inv:0,jumping:false};
@@ -909,7 +909,7 @@ function drawTiles(L,cam,now,t){
    ÉTAT DU JEU
    ========================================================= */
 const SAVE_KEY='globi-odyssee-v1';
-function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,atp:0,atpBank:0}; }
+function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,atp:0,best:{}}; }
 function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.level) return Object.assign(fresh(),s); }catch(e){} return null; }
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
 let G=loadSave()||fresh();
@@ -1003,7 +1003,7 @@ function startNew(){
     'Alerte! Le corps de Max, 15 ans, est envahi par des pathogènes.',
     'Tu es Globi, un globule blanc d’élite. Tu cours, tu sautes et tu lances des anticorps en forme de Y.',
     'Chaque système du corps est un niveau. Frappe les blocs du savoir par en dessous pour répondre aux questions.',
-    'Saute sur les petits pathogènes pour les écraser, ramasse l’ATP pour gagner des vitamines, et affronte le gardien au bout du niveau.',
+    'Saute sur les petits pathogènes pour les écraser, ramasse l’ATP pour battre ton record, et affronte le gardien au bout du niveau.',
     'Gagne les 8 insignes pour atteindre le Pathogène Suprême. Max compte sur toi!'
   ],()=>toMap(0),'Dre Cortex');
 }
@@ -1016,7 +1016,7 @@ function toMap(i){
 function showMapPanel(){
   const z=ALL[sel], won=isBeaten(sel);
   setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${sel===8?'Le Pathogène Suprême':z.nom}</h2></div>
-    <p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b> · ${won?'<span class="won">★ Insigne obtenu</span>':'À conquérir'}</p>
+    <p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b> · ${won?'<span class="won">★ Insigne obtenu</span>':'À conquérir'}${G.best&&G.best[z.id]?` · Record d’ATP : <b>${G.best[z.id]}</b>`:''}</p>
     <p>${z.blurb}</p>
     <div class="row between"><div class="row"><button class="btn" data-act="explore">${won?'Rejouer le niveau ▶':'Entrer dans le niveau ▶'}</button><button class="btn ghost" data-act="codex">Codex</button></div>
     <div class="row"><button class="btn small ghost" data-act="prevZone" aria-label="Zone précédente">◀</button><button class="btn small ghost" data-act="nextZone" aria-label="Zone suivante">▶</button></div></div>`,'[data-act=explore]');
@@ -1047,8 +1047,8 @@ function showPlayPanel(){
   const L=LV, z=L.z, walk=L.mode==='walk';
   setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(L.idx)}"></span><h2>${L.idx===8?'Le cœur du corps':z.nom}</h2></div>
     <p>${walk?`${z.ennemi.nom} est vaincu! Va chercher l’insigne qui flotte au bout du niveau.`:`Frappe les <b class="gold">blocs du savoir</b> (ceux avec une ampoule) par en dessous pour répondre aux questions. Saute sur les petits pathogènes pour les écraser. ${z.ennemi.nom} t’attend au bout du niveau.`}</p>
-    <p class="hint">Clavier : ← → bouger · Espace ou ↑ sauter · Maj courir. Écran tactile : croix, A pour sauter, B pour courir. Chaque bonne réponse : +1 cœur. Chaque niveau commence avec 3 cœurs. 30 ATP = 1 Vitamine C.</p>
-    <div class="row"><button class="btn small" data-act="vitamin" ${G.vit<1?'disabled':''}>Vitamine C ×${G.vit}</button><button class="btn small ghost" data-act="fiche">Fiche du savoir</button><button class="btn small ghost" data-act="quit">Carte</button></div>`,null);
+    <p class="hint">Clavier : ← → bouger · Espace ou ↑ sauter · Maj courir. Écran tactile : croix, A pour sauter, B pour courir. Bonne réponse : +1 cœur (3 au maximum). Ramasse l’ATP pour battre ton record. Les drapeaux verts sont des points de contrôle.</p>
+    <div class="row"><button class="btn small" data-act="vitamin" ${G.vit<1||hearts>=maxHearts()?'disabled':''}>Vitamine C ×${G.vit}</button><button class="btn small ghost" data-act="fiche">Fiche du savoir</button><button class="btn small ghost" data-act="quit">Carte</button></div>`,null);
 }
 
 /* ---------- Questions ---------- */
@@ -1060,7 +1060,7 @@ function renderQuestion(){
   setPanel(`<div class="qhead">${head}<span>Touches 1 à 4</span></div>
     <p class="question">${q.q}</p>
     <div class="answers">${q.opts.map((o,i)=>`<button class="ans" data-act="answer" data-arg="${i}"><span class="k k${i}">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div>
-    <div class="row between brow"><button class="btn small" data-act="vitamin" ${G.vit<1?'disabled':''}>Vitamine C ×${G.vit}</button>${boss?'<button class="btn small ghost" data-act="quit">Abandonner</button>':''}</div>`,null);
+    <div class="row between brow"><button class="btn small" data-act="vitamin" ${G.vit<1||hearts>=maxHearts()?'disabled':''}>Vitamine C ×${G.vit}</button>${boss?'<button class="btn small ghost" data-act="quit">Abandonner</button>':''}</div>`,null);
 }
 function blockQuestion(c,r){
   const L=LV; L.mode='question'; Q={mode:'block',c,r,cur:nextQ(),answered:false,t0:performance.now()};
@@ -1077,13 +1077,14 @@ function bossIntro(){
 function bossQuestion(){ const L=LV; L.mode='boss'; L.n++; Q={mode:'boss',cur:nextQ(),answered:false,t0:performance.now()}; renderQuestion(); }
 
 function addATP(n,wx,wy,quiet){
-  const L=LV; L.atp+=n; G.atp+=n; G.atpBank+=n; if(!quiet) A.sfx('atp');
-  while(G.atpBank>=30){ G.atpBank-=30; G.vit++; const now=performance.now(); L.fx.push({k:'pop',text:'+1 VITAMINE C',x:L.p.x+7,y:L.p.y-14,c:'#ffb347',t0:now,dur:1400,size:8}); setTimeout(()=>A.sfx('heal'),120); updateHUD(); if(L.mode==='play'||L.mode==='walk') showPlayPanel(); }
+  const L=LV; L.atp+=n; G.atp+=n; if(!quiet) A.sfx('atp');
   save();
 }
-function hurt(fromX){
+const INV=2; // durée d’invincibilité (s) = durée exacte du clignotement
+function hurt(fromX,e){
   const L=LV, p=L.p; if(p.inv>0) return;
-  hearts--; p.inv=1.6; p.vx=(p.x+7<fromX?-1:1)*110; p.vy=-170; p.jumping=false;
+  if(e) e.vx=(e.x+7<p.x+7?-1:1)*Math.max(22,Math.abs(e.vx));
+  hearts--; p.inv=INV; p.vx=(p.x+7<fromX?-1:1)*110; p.vy=-170; p.jumping=false;
   const now=performance.now(); L.fx.push({k:'hflash',t0:now,dur:450},{k:'pop',text:'-1',x:p.x+7,y:p.y-6,c:'#ff6b7e',t0:now,dur:900,size:10});
   A.sfx('hurt'); shakeUntil=now+300; shakeHearts(); updateHUD();
   if(hearts<=0) ko(); else if(L.mode==='play'||L.mode==='walk') showPlayPanel();
@@ -1099,13 +1100,13 @@ function answer(i){
     L.qDone++;
     const bx=Q.c*TS+8, by=Q.r*TS;
     if(ok){
-      G.correct++; hearts++; const lv=addXP(10);
-      L.fx.push({k:'pop',text:'+1 COEUR',x:p.x+7,y:p.y-8,c:'#ff8fa3',t0:now+150,dur:1100,size:8});
+      G.correct++; const gained=hearts<maxHearts(); if(gained) hearts++; const lv=addXP(10);
+      if(gained) L.fx.push({k:'pop',text:'+1 COEUR',x:p.x+7,y:p.y-8,c:'#ff8fa3',t0:now+150,dur:1100,size:8});
       for(let k=0;k<3;k++) L.fx.push({k:'tok',x:bx+(k-1)*9,y:by-4,t0:now+k*110,dur:600});
       L.fx.push({k:'pop',text:'+10 XP',x:bx,y:by-22,c:'#ffffff',t0:now,dur:1100,size:8});
       [0,110,220].forEach(d=>setTimeout(()=>A.sfx('atp'),d)); addATP(3,bx,by,true);
       if(lv) setTimeout(()=>A.sfx('level'),500);
-      msg=`<div class="fb ok"><b>Bonne réponse!</b> +1 cœur · +10 XP · +3 ATP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
+      msg=`<div class="fb ok"><b>Bonne réponse!</b> ${gained?'+1 cœur · ':''}+10 XP · +3 ATP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
     } else {
       hearts--; L.fx.push({k:'hflash',t0:now,dur:450},{k:'pop',text:'-1',x:p.x+7,y:p.y-6,c:'#ff6b7e',t0:now,dur:900,size:10});
       A.sfx('hurt'); shakeUntil=now+300; shakeHearts();
@@ -1115,8 +1116,8 @@ function answer(i){
   } else {
     const b=L.boss, hx=p.x+7, hy=p.y+6;
     if(ok){
-      L.streak++; G.correct++; hearts++;
-      L.fx.push({k:'pop',text:'+1 COEUR',x:hx,y:hy-16,c:'#ff8fa3',t0:now,dur:1100,size:8});
+      L.streak++; G.correct++; const gained=hearts<maxHearts(); if(gained) hearts++;
+      if(gained) L.fx.push({k:'pop',text:'+1 COEUR',x:hx,y:hy-16,c:'#ff8fa3',t0:now,dur:1100,size:8});
       const crit=L.streak>=3, dmg=crit?2:1, gain=crit?15:10;
       b.hp=Math.max(0,b.hp-dmg);
       const n=crit?3:1; for(let k=0;k<n;k++) L.fx.push({k:'proj',x0:hx,y0:hy,x1:b.x,y1:b.y,t0:now+k*90,dur:380});
@@ -1130,7 +1131,7 @@ function answer(i){
       }, 380+(n-1)*90);
       const lv=addXP(gain);
       if(lv) setTimeout(()=>A.sfx('level'),900);
-      msg=`<div class="fb ok"><b>${crit?'Coup critique!':'Bonne réponse!'}</b> −${dmg} PV à ${nm} · +1 cœur · +${gain} XP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
+      msg=`<div class="fb ok"><b>${crit?'Coup critique!':'Bonne réponse!'}</b> −${dmg} PV à ${nm}${gained?' · +1 cœur':''} · +${gain} XP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
     } else {
       L.streak=0; hearts--;
       L.fx.push({k:'lunge',t0:now,dur:420});
@@ -1148,7 +1149,7 @@ function answer(i){
 }
 function afterAnswer(){
   const L=LV; if(!L||!Q) return;
-  if(Q.mode==='block'){ Q=null; if(hearts<=0) ko(); else { L.mode=L.boss.dead?'walk':'play'; showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){} } }
+  if(Q.mode==='block'){ Q=null; if(hearts<=0) ko(); else { L.mode=L.boss.dead?'walk':'play'; L.p.inv=Math.max(L.p.inv,1); showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){} } }
   else { if(L.boss.hp<=0) bossDown(); else if(hearts<=0) ko(); else bossQuestion(); }
 }
 function bossDown(){
@@ -1158,11 +1159,12 @@ function bossDown(){
 function levelClear(){
   const L=LV, z=L.z, fin=L.idx===8, first=!fin && !G.beaten.includes(z.id);
   L.mode='done'; A.sfx('level'); A.play('win');
+  G.best=G.best||{}; const rec=L.atp>(G.best[z.id]||0); if(rec) G.best[z.id]=L.atp;
   if(first){ G.beaten.push(z.id); G.vit++; }
   if(fin) G.finalWon=true;
   save(); updateHUD();
   const all=SYS.every(s=>G.beaten.includes(s.id));
-  let html=`<h2>Niveau terminé!</h2><p>${z.ennemi.nom} est vaincu. Blocs du savoir : ${L.qDone} / ${L.nQ} · ATP ramassé : ${L.atp}.</p>`;
+  let html=`<h2>Niveau terminé!</h2><p>${z.ennemi.nom} est vaincu. Blocs du savoir : ${L.qDone} / ${L.nQ} · ATP ramassé : ${L.atp}${rec?' · <b class="gold">nouveau record!</b>':` (record : ${G.best[z.id]})`}.</p>`;
   if(fin){ html+=`<p>Le corps de Max retrouve son équilibre…</p><div class="row end"><button class="btn" data-act="ending">Voir la fin ▶</button></div>`; }
   else{
     if(first) html+=`<div class="reward"><span class="medal" style="--c:${z.color}"></span><div><b class="gold">Insigne : ${z.nom}</b><br>+1 Vitamine C ajoutée à ton sac.</div></div>`;
@@ -1175,8 +1177,17 @@ function levelClear(){
 }
 function ko(){
   const L=LV; L.mode='ko'; Q=null; A.play('lose');
-  setPanel(`<h2>Globi est K.O.!</h2><p>Pas de panique : ton XP, tes insignes et ton ATP sont conservés. Relis la fiche du savoir et retente ta chance.</p>
-    <div class="row">${L.boss.started?`<button class="btn" data-act="retryBoss">Réessayer le gardien ▶</button>`:''}<button class="btn ${L.boss.started?'ghost':''}" data-act="restart">Recommencer le niveau${L.boss.started?'':' ▶'}</button><button class="btn ghost" data-act="fiche">Relire la fiche</button><button class="btn ghost" data-act="map">Carte</button></div>`);
+  const cp=!L.boss.started && L.hasCp;
+  const first=L.boss.started?`<button class="btn" data-act="retryBoss">Réessayer le gardien ▶</button>`:cp?`<button class="btn" data-act="fromCp">Reprendre au drapeau vert ▶</button>`:'';
+  const lead=!!first;
+  setPanel(`<h2>Globi est K.O.!</h2><p>Pas de panique : ton XP et tes insignes sont conservés.${cp?' Tu peux repartir du dernier point de contrôle avec 3 cœurs : les blocs déjà répondus restent faits.':''} Relis la fiche du savoir au besoin.</p>
+    <div class="row">${first}<button class="btn ${lead?'ghost':''}" data-act="restart">Recommencer le niveau${lead?'':' ▶'}</button><button class="btn ghost" data-act="fiche">Relire la fiche</button><button class="btn ghost" data-act="map">Carte</button></div>`);
+}
+function fromCheckpoint(){
+  const L=LV, p=L.p; hearts=maxHearts(); updateHUD(); Q=null; DLG=null;
+  p.x=L.respawn.x; p.y=L.respawn.y; p.vx=0; p.vy=0; p.inv=INV; L.cam=Math.max(0,p.x-130); L.mode='play';
+  for(const k in keys) keys[k]=false;
+  A.play('level'); showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){}
 }
 function retryBoss(){
   const L=LV, b=L.boss; hearts=maxHearts(); updateHUD();
@@ -1235,7 +1246,7 @@ function updateLevel(dt,now){
   const max=(keys.run&&ctrl)?140:88;
   if(dir){ p.vx+=dir*(p.onGround?640:500)*dt; p.face=dir; if(Math.abs(p.vx)>max) p.vx=Math.sign(p.vx)*Math.max(max,Math.abs(p.vx)-420*dt); }
   else { const f=(p.onGround?760:220)*dt; if(Math.abs(p.vx)<=f) p.vx=0; else p.vx-=Math.sign(p.vx)*f; }
-  if(ctrl && jumpBuf>0 && p.coyote>0){ p.vy=-((keys.run&&Math.abs(p.vx)>100)?372:356); p.onGround=false; p.coyote=0; jumpBuf=0; p.jumping=true; A.sfx('jump'); }
+  if(ctrl && jumpBuf>0 && p.coyote>0){ p.vy=-((keys.run&&Math.abs(p.vx)>100)?420:405); p.onGround=false; p.coyote=0; jumpBuf=0; p.jumping=true; A.sfx('jump'); }
   if(p.jumping && !keys.jump && p.vy<-130) p.vy=-130;
   p.vy=Math.min(430,p.vy+930*dt);
   moveX(p,dt);
@@ -1254,21 +1265,21 @@ function updateLevel(dt,now){
     if(e.onGround){ const fx=e.vx<0?e.x-1:e.x+e.w+1; if(!solid(Math.floor(fx/TS),Math.floor((e.y+e.h+2)/TS))) e.vx=-e.vx; }
     if(e.y>ROWS*TS+40){ e.alive=false; continue; }
     if(ctrl && overlap(p,e,2)){
-      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; p.vy=keys.jump?-330:-210; p.jumping=keys.jump; A.sfx('stomp'); addATP(1,e.x+7,e.y,true); L.fx.push({k:'pop',text:'+1 ATP',x:e.x+7,y:e.y-8,c:'#ffd23f',t0:now,dur:800,size:8}); }
-      else hurt(e.x+7);
+      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; const hold=keys.jump||jumpBuf>0; p.vy=hold?-470:-320; p.jumping=hold; jumpBuf=0; A.sfx('stomp'); addATP(1,e.x+7,e.y,true); L.fx.push({k:'pop',text:'+1 ATP',x:e.x+7,y:e.y-8,c:'#ffd23f',t0:now,dur:800,size:8}); }
+      else hurt(e.x+7,e);
       if(L.mode==='ko') return;
     }
   }
   if(ctrl){
     for(const a of L.atps){ if(!a.taken && overlap(p,{x:a.x-4,y:a.y-5,w:8,h:10})){ a.taken=true; addATP(1,a.x,a.y); } }
-    for(const cp of L.cps){ if(!cp.on && overlap(p,{x:cp.x-2,y:cp.y-34,w:14,h:34})){ cp.on=true; L.respawn={x:cp.x,y:cp.y-20}; A.sfx('checkpoint'); L.fx.push({k:'pop',text:'POINT DE CONTRÔLE',x:cp.x+6,y:cp.y-46,c:'#7ff0a4',t0:now,dur:1300,size:8}); } }
+    for(const cp of L.cps){ if(!cp.on && overlap(p,{x:cp.x-2,y:cp.y-34,w:14,h:34})){ cp.on=true; L.hasCp=true; L.respawn={x:cp.x,y:cp.y-20}; A.sfx('checkpoint'); L.fx.push({k:'pop',text:'POINT DE CONTRÔLE',x:cp.x+6,y:cp.y-46,c:'#7ff0a4',t0:now,dur:1300,size:8}); } }
     if(L.medal && overlap(p,{x:L.medal.x-9,y:L.medal.y-12,w:18,h:24})){ L.medal=null; levelClear(); return; }
   }
   // chute dans un trou
   if(p.y>ROWS*TS+24){
     hearts--; A.sfx('fall'); shakeHearts(); updateHUD();
     if(hearts<=0){ ko(); return; }
-    p.x=L.respawn.x; p.y=L.respawn.y; p.vx=0; p.vy=0; p.inv=1.6; L.cam=Math.max(0,p.x-130);
+    p.x=L.respawn.x; p.y=L.respawn.y; p.vx=0; p.vy=0; p.inv=INV; L.cam=Math.max(0,p.x-130);
     if(L.mode==='play') showPlayPanel();
   }
   if(L.mode==='play' && !L.boss.started && p.x>L.arenaX+28){ bossIntro(); }
@@ -1315,7 +1326,7 @@ function drawLevel(L,t,now,dt){
   drawBoss(L,now,t,cam);
   if(L.medal) drawMedal(L.medal.x-cam,L.medal.y-VY,t,L.z);
   const p=L.p, hf=L.fx.find(f=>f.k==='hflash'&&now>=f.t0&&now<f.t0+f.dur);
-  const blink=p.inv>0 && Math.floor(now/80)%2===0;
+  const blink=p.inv>0 && Math.floor(now/(p.inv<0.5?50:90))%2===0;
   if(L.mode==='ko'){ ctx.save(); ctx.globalAlpha=0.5; drawGlobi(p.x-cam,p.y-VY,t,{face:1,onGround:true,vx:0},null); ctx.restore(); }
   else if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,(hf&&Math.floor((now-hf.t0)/70)%2===0)?'#ff5a6e':null);
   drawFx(L,now,cam);
@@ -1433,9 +1444,9 @@ function help(){
   openModal(`<h2 id="mTitle">Comment jouer</h2>
     <p>Choisis un système sur la carte du corps de Max. Chaque système est un niveau de plateforme.</p>
     <p>Frappe les blocs du savoir (avec une ampoule) par en dessous : une question apparaît. Bonne réponse : +1 cœur, +10 XP et +3 ATP. Erreur : tu perds un cœur.</p>
-    <p>Saute sur les petits pathogènes pour les écraser. Si tu les touches de côté ou si tu tombes dans un trou, tu perds un cœur. Le drapeau vert est un point de contrôle.</p>
+    <p>Saute sur les petits pathogènes pour les écraser : garde le bouton de saut enfoncé pour rebondir très haut! Si tu les touches de côté ou si tu tombes dans un trou, tu perds un cœur et tu clignotes 2 secondes : tant que tu clignotes, tu es invincible. Les drapeaux verts sont des points de contrôle : si tu tombes dans un trou ou si tu es K.O., tu repars du dernier drapeau touché.</p>
     <p>Au bout du niveau, le gardien t’attend : chaque bonne réponse lui lance un anticorps. Trois bonnes réponses de suite : coups critiques! Ramasse ensuite l’insigne.</p>
-    <p>Chaque bonne réponse (blocs et gardien) donne +1 cœur, sans limite. Mais au début de chaque niveau, et chaque fois que tu recommences, tu repars avec 3 cœurs. 30 ATP = 1 Vitamine C, qui redonne un cœur.</p>
+    <p>Tu as 3 cœurs au maximum. Chaque bonne réponse (blocs et gardien) redonne un cœur perdu. L’ATP sert à battre ton record dans chaque niveau. Chaque insigne rapporte une Vitamine C, qui redonne un cœur en cas d’urgence.</p>
     <div class="keys"><kbd>← →</kbd><span>Bouger (aussi Q / D ou A / D)</span><kbd>Espace ↑</kbd><span>Sauter (bouton A)</span><kbd>Maj</kbd><span>Courir (bouton B)</span><kbd>1 2 3 4</kbd><span>Répondre aux questions</span><kbd>Échap</kbd><span>Fermer une fenêtre</span></div>
     <p class="hint">La progression est sauvegardée dans ce navigateur.</p>
     <div class="row end"><button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
@@ -1455,13 +1466,14 @@ const ACT={
   go(){ A.sfx('confirm'); startLevel(false); },
   restart(){ A.sfx('confirm'); startLevel(true); },
   retryBoss(){ A.sfx('confirm'); retryBoss(); },
+  fromCp(){ A.sfx('confirm'); fromCheckpoint(); },
   answer(a){ answer(+a); },
   next(){ A.sfx('select'); afterAnswer(); },
   quit(){ A.sfx('select'); toMap(sel); },
   fiche(){ A.sfx('select'); cxView(LV?LV.idx:sel,true); },
-  vitamin(){ if(G.vit<1) return; G.vit--; hearts++; save(); updateHUD(); A.sfx('heal');
+  vitamin(){ if(G.vit<1||hearts>=maxHearts()) return; G.vit--; hearts++; save(); updateHUD(); A.sfx('heal');
     if(LV){ const t=performance.now(); LV.fx.push({k:'heal',x:LV.p.x+7,y:LV.p.y+10,t0:t,dur:700},{k:'pop',text:'+1',x:LV.p.x+7,y:LV.p.y-6,c:'#7ff0a4',t0:t,dur:900,size:10}); }
-    panel.querySelectorAll('[data-act=vitamin]').forEach(b=>{ b.textContent='Vitamine C ×'+G.vit; b.disabled=G.vit<1; });
+    panel.querySelectorAll('[data-act=vitamin]').forEach(b=>{ b.textContent='Vitamine C ×'+G.vit; b.disabled=G.vit<1||hearts>=maxHearts(); });
     if(playing()){ try{ cv.focus({preventScroll:true}); }catch(e){} } },
   prevZone(){ moveSel(-1); }, nextZone(){ moveSel(1); },
   ending(){ ending(); },
