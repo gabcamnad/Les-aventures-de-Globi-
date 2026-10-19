@@ -1,0 +1,1558 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Globi et l'Odyssée du corps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Press+Start+2P&family=VT323&display=swap">
+<style>
+/* Layout: red handheld console on a bright sky — pixel screen in a dark bezel, NES dialog box below, D-pad / Start pills / A-B buttons at the bottom. Single deliberate look. */
+:root{
+  --sky:#5f9dfa; --sky-dot:#86b6ff;
+  --shell:#d63d34; --shell-shade:#a82a24; --shell-light:#f0756b; --shell-ink:#fff1e0;
+  --bezel:#2a2333; --bezel-ink:#b9b0c8;
+  --pad:#2a2333; --pad-hi:#463c55; --btn:#8a1530; --btn-hi:#b02445;
+  --box:#0f1847; --box-hi:#1d2a6e; --box-hover:#2b3b8c; --edge:#f4f2ff; --ink:#f4f2ff; --muted:#aab0dc; --sub:#d6dbff;
+  --gold:#f8c537; --red:#e8455a; --green:#3fbf6f;
+  --kA:#e8455a; --kB:#f2c230; --kC:#3fbf6f; --kD:#4f8cf5;
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"VT323","Courier New",monospace;
+  --arcade:"Press Start 2P","Courier New",monospace;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  background-color:var(--sky);
+  background-image:radial-gradient(var(--sky-dot) 1.5px, transparent 1.7px);
+  background-size:18px 18px;
+  color:var(--ink); font-family:var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px 32px;
+}
+.shell{
+  max-width:780px; margin:0 auto; background:var(--shell);
+  border-radius:16px 16px 60px 16px; padding:16px 16px 22px;
+  box-shadow:inset -5px -7px 0 var(--shell-shade), inset 3px 3px 0 var(--shell-light), 0 12px 0 #233a7a;
+}
+.bezel{background:var(--bezel); border-radius:10px 10px 34px 10px; padding:10px 14px 16px}
+.bezel-top{display:flex; justify-content:space-between; align-items:center; gap:8px; font-family:var(--display); font-size:11px; letter-spacing:.16em; color:var(--bezel-ink); margin-bottom:8px; text-transform:uppercase}
+.led{display:inline-flex; align-items:center; gap:7px}
+.led::before{content:""; width:8px; height:8px; border-radius:50%; background:#ff3b52; box-shadow:0 0 6px #ff3b52}
+.hud{display:flex; flex-wrap:wrap; align-items:center; gap:6px 18px; font-family:var(--display); font-size:13px; color:#e9e6ff; margin-bottom:8px; min-height:22px; letter-spacing:.06em}
+.hearts{display:flex; align-items:center; gap:3px}
+.hearts svg{width:18px; height:16px; display:block}
+.hearts.shake{animation:shake .35s steps(4)}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.lvl,.vit,.bdg{display:flex; align-items:center; gap:7px}
+.vit svg,.bdg svg{width:15px; height:15px; display:block}
+.xp{width:72px; height:9px; background:#151332; border:2px solid #57527e; position:relative}
+.xp i{position:absolute; inset:0 auto 0 0; width:0; background:var(--gold); transition:width .4s steps(8)}
+.screen{position:relative; border:3px solid #07061a; background:#000; overflow:hidden}
+#cv{display:block; width:100%; height:auto; aspect-ratio:16/9; image-rendering:crisp-edges; image-rendering:pixelated; cursor:pointer; outline:none; touch-action:manipulation}
+.logo{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; padding-top:7%; pointer-events:none; text-align:center}
+.logo h1{font-family:var(--display); font-weight:700; font-size:clamp(36px,10vw,80px); color:var(--gold); letter-spacing:.08em; margin:0; line-height:1; text-shadow:3px 3px 0 #c0480f, 6px 6px 0 #1a0b10}
+.logo p{font-family:var(--display); font-weight:600; font-size:clamp(11px,2.6vw,18px); color:#fff; text-shadow:2px 2px 0 #1a0b10; margin:.5em 0 0; letter-spacing:.1em; text-transform:uppercase}
+.tag{position:absolute; top:22px; left:8px; font-family:var(--display); font-size:clamp(10px,2vw,13px); color:#fff; background:rgba(5,8,31,.75); padding:3px 8px; letter-spacing:.14em; text-transform:uppercase}
+.ecard{position:absolute; top:12%; right:3%; min-width:40%; background:#f3f0ff; color:#1a1830; border:2px solid #1a1830; border-radius:4px 4px 14px 4px; padding:4px 10px 7px; font-family:var(--display); font-size:clamp(11px,2.3vw,16px); box-shadow:3px 3px 0 rgba(0,0,0,.45)}
+.ecard .hp{display:flex; align-items:center; gap:6px; margin-top:3px; font-size:.75em; color:#9a6a00; font-weight:700}
+.ecard .bar{flex:1; height:8px; background:#2a2840; border:1px solid #1a1830; position:relative}
+.ecard .bar i{position:absolute; inset:0 auto 0 0; background:#3fbf6f; transition:width .5s .35s steps(10)}
+.ecard .bar.mid i{background:#f2c230} .ecard .bar.low i{background:#e8455a}
+.ecard .num{font-variant-numeric:tabular-nums; color:#1a1830; min-width:3.2em; text-align:right}
+
+.panel{margin-top:16px; background:var(--box); border:3px solid var(--edge); border-radius:6px; box-shadow:0 0 0 3px #070b26, 4px 6px 0 3px rgba(0,0,0,.25); padding:14px 16px 16px; font-size:22px; line-height:1.15; min-height:170px; display:flex; flex-direction:column; gap:10px}
+.panel p,.modal p{margin:0; max-width:66ch}
+.panel h2,.modal h2{font-family:var(--display); font-size:20px; margin:0; color:var(--gold); letter-spacing:.04em; text-wrap:balance}
+.gold{color:var(--gold); font-weight:normal}
+.btn{font-family:var(--display); font-size:15px; font-weight:600; color:var(--ink); background:var(--box-hi); border:2px solid var(--edge); border-radius:4px; padding:8px 14px; cursor:pointer; box-shadow:0 3px 0 #050826; letter-spacing:.03em}
+.btn:hover{background:var(--box-hover)}
+.btn:focus-visible,.ans:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+.btn:active,.ans:active{transform:translateY(2px); box-shadow:0 1px 0 #050826}
+.btn:disabled{opacity:.42; cursor:not-allowed}
+.btn.ghost{background:transparent}
+.btn.small{font-size:13px; padding:6px 10px}
+.row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.row.end{justify-content:flex-end}
+.row.between{justify-content:space-between}
+.hint{color:var(--muted); font-size:18px}
+.speaker{font-family:var(--display); font-size:13px; letter-spacing:.14em; color:var(--gold); text-transform:uppercase}
+.say{min-height:2.4em; font-size:24px}
+.question{font-size:25px; line-height:1.1}
+.qhead{display:flex; flex-wrap:wrap; gap:12px; align-items:center; font-family:var(--display); font-size:12px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase}
+.streak{color:var(--gold)}
+.answers{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+.ans{display:flex; align-items:center; gap:10px; text-align:left; font-family:var(--body); font-size:21px; line-height:1.05; color:var(--ink); background:var(--box-hi); border:2px solid #4a58a8; border-radius:6px; padding:8px 10px; min-height:52px; cursor:pointer; box-shadow:0 3px 0 #050826; min-width:0}
+.ans span:last-child{min-width:0}
+.ans:hover{border-color:var(--edge); background:var(--box-hover)}
+.ans:disabled{cursor:default}
+.ans:disabled:not(.good):not(.bad){opacity:.5}
+.ans.good{background:#1b6a40; border-color:#8ff0b4; opacity:1}
+.ans.bad{background:#7c1d2e; border-color:#ffa8b4; opacity:1}
+.k{flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-family:var(--display); font-size:13px; font-weight:700; color:#14112a; box-shadow:inset -2px -3px 0 rgba(0,0,0,.28), 0 2px 0 #050826}
+.k0{background:var(--kA)} .k1{background:var(--kB)} .k2{background:var(--kC)} .k3{background:var(--kD)}
+.after{display:flex; flex-direction:column; gap:8px}
+.fb{font-family:var(--display); font-size:15px; padding:6px 10px; border-radius:4px; letter-spacing:.02em}
+.fb.ok{background:rgba(63,191,111,.18); color:#8ff0b4}
+.fb.no{background:rgba(232,69,90,.22); color:#ffb4bf}
+.fb.lv{background:rgba(248,197,55,.18); color:var(--gold)}
+.expl{color:var(--sub)}
+.zhead{display:flex; align-items:center; gap:10px}
+.chip{width:14px; height:14px; background:var(--c); box-shadow:2px 2px 0 #050826; flex:none}
+.meta{font-size:19px; color:var(--muted)}
+.meta b{color:var(--ink); font-weight:normal}
+.meta .won{color:var(--gold)}
+.fiche{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px}
+.fiche li{padding-left:22px; position:relative; max-width:70ch; font-size:21px; line-height:1.1}
+.fiche li::before{content:""; position:absolute; left:4px; top:.42em; width:8px; height:8px; background:var(--c, var(--gold))}
+.fiche b{color:var(--gold); font-weight:normal}
+.reward{display:flex; align-items:center; gap:14px; background:rgba(248,197,55,.1); border:2px dashed rgba(248,197,55,.5); padding:10px 12px; border-radius:6px}
+.medal{width:34px; height:34px; border-radius:50%; background:var(--c); border:3px solid var(--gold); box-shadow:0 3px 0 #050826; flex:none}
+.warn{color:#ff9ad1}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px}
+.stat{background:var(--box-hi); border:2px solid #4a58a8; padding:8px 10px; border-radius:4px}
+.stat b{display:block; font-family:var(--display); font-size:22px; color:var(--gold); font-variant-numeric:tabular-nums}
+
+/* ----- Commandes de la console ----- */
+.controls{display:grid; grid-template-columns:auto 1fr auto; grid-template-areas:"dpad mid ab"; align-items:center; gap:14px; margin-top:22px; padding:0 4px; user-select:none; -webkit-user-select:none}
+.dpad{grid-area:dpad; position:relative; width:108px; height:108px}
+.dpad::before{content:""; position:absolute; left:36px; top:0; width:36px; height:108px; background:var(--pad); border-radius:5px; box-shadow:0 4px 0 #160f1d}
+.dpad::after{content:""; position:absolute; top:36px; left:0; width:108px; height:36px; background:var(--pad); border-radius:5px; box-shadow:0 4px 0 #160f1d}
+.dk{position:absolute; z-index:2; width:36px; height:36px; border:none; background:transparent; color:#8f86a3; font-size:13px; cursor:pointer; touch-action:none; display:grid; place-items:center; border-radius:4px}
+.dk:active,.dk.on{background:var(--pad-hi); color:#fff}
+.dk:focus-visible{outline:3px solid var(--gold)}
+.dk.l{left:0; top:36px} .dk.r{right:0; top:36px} .dk.u{left:36px; top:0} .dk.d{left:36px; bottom:0; cursor:default}
+.dcenter{position:absolute; z-index:2; left:46px; top:46px; width:16px; height:16px; border-radius:50%; background:#1e1826; pointer-events:none}
+.mid{grid-area:mid; display:flex; flex-direction:column; align-items:center; gap:12px}
+.brand{font-family:var(--display); font-style:italic; font-weight:700; color:var(--shell-ink); font-size:18px; letter-spacing:.06em; text-shadow:2px 2px 0 var(--shell-shade)}
+.brand span:nth-child(1){color:#ffd23f} .brand span:nth-child(2){color:#7ff0a4} .brand span:nth-child(3){color:#7fd6ff}
+.pills{display:flex; gap:16px; flex-wrap:wrap; justify-content:center}
+.pill{display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:6px 4px 2px; font-family:var(--display); font-size:11px; font-weight:600; letter-spacing:.14em; color:var(--shell-ink)}
+.pill::before{content:""; width:42px; height:12px; border-radius:8px; background:var(--pad); transform:rotate(-24deg); box-shadow:inset -2px -2px 0 #160f1d}
+.pill[aria-pressed="false"]::before{background:#8f5a60}
+.pill:active::before{transform:rotate(-24deg) translateY(2px)}
+.pill:focus-visible{outline:3px solid var(--gold); outline-offset:2px; border-radius:6px}
+.ab{grid-area:ab; display:flex; gap:14px; align-items:flex-end; transform:rotate(-18deg); padding-right:4px}
+.abw{display:flex; flex-direction:column; align-items:center; gap:6px; font-family:var(--display); font-size:10px; font-weight:600; letter-spacing:.12em; color:var(--shell-ink)}
+.abw:last-child{margin-bottom:22px}
+.abk{width:52px; height:52px; border-radius:50%; border:none; background:var(--btn); color:#ffd9de; font-family:var(--arcade); font-size:13px; cursor:pointer; box-shadow:inset -3px -4px 0 rgba(0,0,0,.3), 0 4px 0 #4a0a18; touch-action:none}
+.abk:active,.abk.on{background:var(--btn-hi); transform:translateY(2px); box-shadow:inset -3px -4px 0 rgba(0,0,0,.3), 0 2px 0 #4a0a18}
+.abk:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+
+.modal{position:fixed; inset:0; background:rgba(8,6,24,.8); display:grid; place-items:center; z-index:50; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px))}
+.modal .box{background:var(--box); border:3px solid var(--edge); box-shadow:0 0 0 3px #070b26; border-radius:6px; max-width:640px; width:100%; max-height:85vh; overflow:auto; padding:16px 18px; font-size:21px; line-height:1.15; display:flex; flex-direction:column; gap:12px}
+.codex{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px}
+.cx{display:flex; align-items:center; gap:10px; text-align:left}
+.keys{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:center}
+.keys kbd{font-family:var(--display); font-size:13px; background:var(--box-hi); border:2px solid #4a58a8; padding:2px 8px; border-radius:4px; white-space:nowrap}
+
+@media (max-width:560px){
+  .answers{grid-template-columns:1fr}
+  .shell{padding:10px 10px 18px; border-radius:12px 12px 40px 12px}
+  .bezel{padding:8px 8px 12px; border-radius:8px 8px 24px 8px}
+  .panel{font-size:20px; padding:12px; min-height:150px}
+  .question{font-size:22px}
+  .say{font-size:22px}
+  .ans{font-size:20px; min-height:46px}
+  .bezel-top span:last-child{display:none}
+  .controls{grid-template-columns:auto auto; grid-template-areas:"dpad ab" "mid mid"; justify-content:space-between}
+}
+@media (prefers-reduced-motion:reduce){
+  .hearts.shake{animation:none}
+  .xp i,.ecard .bar i{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="bezel">
+    <div class="bezel-top"><span class="led">Batterie</span><span>Sciences · Secondaire 3 · L’être humain</span></div>
+    <div class="hud" id="hud" hidden>
+      <div class="hearts" id="hearts" aria-label="Cœurs"></div>
+      <div class="lvl"><span id="lvl">NIV 1</span><span class="xp" title="Expérience"><i id="xpbar"></i></span></div>
+      <div class="vit" id="vit"></div>
+      <div class="bdg" id="bdg"></div>
+    </div>
+    <div class="screen">
+      <canvas id="cv" width="640" height="360" tabindex="-1" aria-label="Écran de jeu"></canvas>
+      <div class="logo" id="logo"><h1>GLOBI</h1><p>et l’Odyssée du corps</p></div>
+      <div class="tag" id="tag" hidden>Fiche du savoir</div>
+      <div class="ecard" id="ecard" hidden>
+        <div id="ename">—</div>
+        <div class="hp">PV<div class="bar" id="ebarWrap"><i id="ebar"></i></div><span class="num" id="enum">5/5</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel" aria-live="polite"></div>
+
+  <div class="controls">
+    <div class="dpad" aria-label="Croix directionnelle">
+      <button class="dk u" data-key="jump" aria-label="Sauter">▲</button>
+      <button class="dk l" data-key="left" aria-label="Gauche">◀</button>
+      <button class="dk r" data-key="right" aria-label="Droite">▶</button>
+      <button class="dk d" tabindex="-1" aria-hidden="true">▼</button>
+      <span class="dcenter"></span>
+    </div>
+    <div class="mid">
+      <div class="brand">GLOBI <span>B</span><span>I</span><span>O</span></div>
+      <div class="pills">
+        <button class="pill" id="pSound" data-act="toggleSound" aria-pressed="true">SON</button>
+        <button class="pill" data-act="codex">CODEX</button>
+        <button class="pill" data-act="help">AIDE</button>
+      </div>
+    </div>
+    <div class="ab">
+      <div class="abw"><button class="abk" data-key="run" aria-label="Courir">B</button>COURIR</div>
+      <div class="abw"><button class="abk" data-key="jump" aria-label="Sauter">A</button>SAUTER</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="box" id="mbox"></div></div>
+
+<script>
+/* =========================================================
+   DONNÉES — systèmes du corps humain (Secondaire 3)
+   q.o[0] est toujours la bonne réponse (mélangée à l’affichage)
+   ========================================================= */
+const SYS = [
+{ id:'dig', nom:'Système digestif', court:'Digestif', fonction:'Fonction de nutrition', color:'#f0a03a', part:'food', node:[153,84],
+  blurb:'Le long tube qui transforme ton repas en nutriments. Une bactérie ronge la paroi de l’estomac.',
+  ennemi:{nom:'Ulcérax', type:'bacille', pal:{a:'#7bc950',b:'#3f7a25',o:'#173a10',h:'#c8f29a'}},
+  intro:'Il ronge la paroi de l’estomac! Réponds juste pour l’arrêter.',
+  fiche:[
+    '<b>Rôle :</b> transformer les aliments en nutriments assez petits pour passer dans le sang.',
+    '<b>Tube digestif :</b> bouche → pharynx → œsophage → estomac → intestin grêle → gros intestin → anus.',
+    '<b>Glandes digestives :</b> glandes salivaires, glandes gastriques, foie (bile), pancréas (suc pancréatique) et glandes intestinales.',
+    '<b>Transformation mécanique</b> (mastication, brassage) et <b>chimique</b> (enzymes digestives, comme l’amylase de la salive).',
+    '<b>Absorption :</b> surtout dans l’intestin grêle, grâce aux villosités. Le gros intestin absorbe surtout l’eau.'
+  ],
+  q:[
+    {q:'Dans quel organe se fait la majeure partie de l’absorption des nutriments?', o:['L’intestin grêle','L’estomac','Le gros intestin','L’œsophage'], e:'Les villosités de l’intestin grêle forment une immense surface d’échange avec le sang.'},
+    {q:'Quel est le rôle principal du gros intestin?', o:['Absorber l’eau et former les selles','Produire la bile','Digérer les protéines','Broyer les aliments'], e:'Les nutriments ont déjà été absorbés dans l’intestin grêle. Le gros intestin récupère surtout l’eau.'},
+    {q:'Quelle glande digestive produit la bile?', o:['Le foie','La vésicule biliaire','Le pancréas','Les glandes salivaires'], e:'Le foie fabrique la bile; la vésicule biliaire ne fait que l’emmagasiner. La bile émulsionne les lipides.'},
+    {q:'La mastication des aliments est une transformation…', o:['mécanique','chimique','hormonale','nerveuse'], e:'Couper, broyer et brasser fragmentent les aliments sans changer leur nature. Les enzymes, elles, font la transformation chimique.'},
+    {q:'L’amylase de la salive commence la digestion de quel nutriment?', o:['Les glucides (amidon)','Les lipides','Les protéines','Les vitamines'], e:'Dès la bouche, l’amylase salivaire découpe l’amidon en sucres plus simples.'},
+    {q:'Dans quel ordre le bol alimentaire voyage-t-il?', o:['Bouche → pharynx → œsophage → estomac','Bouche → œsophage → pharynx → estomac','Bouche → larynx → œsophage → estomac','Bouche → trachée → estomac → intestin'], e:'Le pharynx est le carrefour entre la bouche et l’œsophage. L’épiglotte empêche les aliments d’entrer dans le larynx.'},
+    {q:'Lequel de ces éléments est absorbé sans avoir besoin d’être digéré?', o:['L’eau','L’amidon','Les protéines','Les lipides'], e:'L’eau, les sels minéraux et les vitamines sont déjà assez petits pour être absorbés directement.'}
+  ]},
+{ id:'res', nom:'Système respiratoire', court:'Respiratoire', fonction:'Fonction de nutrition', color:'#5ab8f0', part:'bubble', node:[149,55],
+  blurb:'Des fosses nasales jusqu’aux alvéoles. Un nuage de fumée toxique bloque les bronches.',
+  ennemi:{nom:'Fumigor', type:'nuage', pal:{a:'#a9a7b8',b:'#6e6b80',o:'#2c2a3a',h:'#e4e2ef'}},
+  intro:'Il obstrue les bronches de Max! Chaque bonne réponse dissipe la fumée.',
+  fiche:[
+    '<b>Rôle :</b> capter le dioxygène (O₂) de l’air et rejeter le dioxyde de carbone (CO₂).',
+    '<b>Voies respiratoires :</b> fosses nasales → pharynx → larynx → trachée → bronches → bronchioles → alvéoles pulmonaires.',
+    '<b>Échanges gazeux :</b> par diffusion, entre les alvéoles et les capillaires sanguins.',
+    '<b>Inspiration :</b> le diaphragme se contracte et s’abaisse, la cage thoracique s’agrandit, l’air entre.',
+    '<b>Expiration :</b> le diaphragme se relâche et remonte, le volume des poumons diminue, l’air sort.'
+  ],
+  q:[
+    {q:'Où se produisent les échanges gazeux entre l’air et le sang?', o:['Dans les alvéoles pulmonaires','Dans la trachée','Dans les bronches','Dans le larynx'], e:'Les alvéoles ont une paroi très mince entourée de capillaires : l’O₂ et le CO₂ la traversent par diffusion.'},
+    {q:'Pendant l’inspiration, le diaphragme…', o:['se contracte et s’abaisse','se relâche et remonte','reste immobile','se contracte et remonte'], e:'En s’abaissant, le diaphragme augmente le volume de la cage thoracique. La pression baisse et l’air entre.'},
+    {q:'Quel organe contient les cordes vocales?', o:['Le larynx','Le pharynx','La trachée','Les bronches'], e:'Le larynx, situé au-dessus de la trachée, contient les cordes vocales qui vibrent pour produire la voix.'},
+    {q:'Quel gaz passe du sang vers les alvéoles pour être expiré?', o:['Le dioxyde de carbone (CO₂)','Le dioxygène (O₂)','L’azote (N₂)','L’hydrogène (H₂)'], e:'Le CO₂, déchet des cellules, est plus concentré dans le sang que dans l’air des alvéoles : il diffuse vers les alvéoles.'},
+    {q:'Quel est le rôle des fosses nasales?', o:['Réchauffer, humidifier et filtrer l’air','Faire les échanges gazeux','Produire la voix','Transporter l’O₂ dans le sang'], e:'Les poils et le mucus retiennent les poussières; l’air y est aussi réchauffé et humidifié.'},
+    {q:'Quel conduit est commun aux systèmes respiratoire et digestif?', o:['Le pharynx','L’œsophage','La trachée','Les bronches'], e:'L’air et les aliments passent tous les deux par le pharynx. Ensuite, l’air va dans le larynx et les aliments dans l’œsophage.'},
+    {q:'Par quel phénomène l’O₂ passe-t-il des alvéoles vers le sang?', o:['La diffusion','La filtration','La digestion','La contraction'], e:'La diffusion déplace une substance d’un milieu plus concentré vers un milieu moins concentré.'}
+  ]},
+{ id:'cir', nom:'Système circulatoire', court:'Circulatoire', fonction:'Fonction de nutrition', color:'#e8455a', part:'rbc', node:[168,60],
+  blurb:'Le cœur et des milliers de kilomètres de vaisseaux. Un caillot géant menace la circulation.',
+  ennemi:{nom:'Caillotron', type:'caillot', pal:{a:'#c3283f',b:'#7e1022',o:'#3a0610',h:'#f7e6c8'}},
+  intro:'Il bloque une artère! Dissous-le avec tes connaissances.',
+  fiche:[
+    '<b>Rôle :</b> transporter l’O₂, les nutriments, les déchets et les hormones dans tout le corps.',
+    '<b>Le cœur a 4 cavités :</b> 2 oreillettes (reçoivent le sang) et 2 ventricules (propulsent le sang).',
+    '<b>Circulation pulmonaire :</b> cœur → poumons → cœur. <b>Circulation systémique :</b> cœur → organes → cœur.',
+    '<b>Vaisseaux :</b> artères (partent du cœur), veines (reviennent au cœur, avec valvules), capillaires (lieu des échanges).',
+    '<b>Sang :</b> plasma (≈ 55 %), globules rouges (O₂), globules blancs (défense), plaquettes (coagulation).'
+  ],
+  q:[
+    {q:'Quels vaisseaux transportent le sang du cœur vers les organes?', o:['Les artères','Les veines','Les vaisseaux lymphatiques','Les uretères'], e:'Les artères partent du cœur. Leur paroi épaisse et élastique résiste à la forte pression du sang.'},
+    {q:'Quelle composante du sang transporte l’O₂?', o:['Les globules rouges','Les globules blancs','Les plaquettes','Le plasma'], e:'Les globules rouges contiennent l’hémoglobine, une protéine qui fixe le dioxygène.'},
+    {q:'Quel est le rôle des plaquettes?', o:['Aider à la coagulation du sang','Transporter l’O₂','Produire des anticorps','Transporter la bile'], e:'Lors d’une blessure, les plaquettes s’agglutinent et forment un caillot qui arrête le saignement.'},
+    {q:'Quelle cavité du cœur propulse le sang vers tout le corps?', o:['Le ventricule gauche','Le ventricule droit','L’oreillette gauche','L’oreillette droite'], e:'Le ventricule gauche envoie le sang dans l’aorte (circulation systémique). Sa paroi est la plus épaisse du cœur.'},
+    {q:'À quoi sert la circulation pulmonaire?', o:['Oxygéner le sang dans les poumons','Nourrir les muscles des jambes','Filtrer le sang dans les reins','Transporter les nutriments de l’intestin'], e:'Le ventricule droit envoie le sang aux poumons, où il rejette le CO₂ et capte l’O₂, puis il revient à l’oreillette gauche.'},
+    {q:'Quel groupe sanguin est le donneur universel de globules rouges?', o:['O−','AB+','A+','B−'], e:'Les globules rouges O− n’ont ni antigène A, ni B, ni Rh : on peut les donner à tous les groupes.'},
+    {q:'Quels vaisseaux possèdent des valvules qui empêchent le sang de refluer?', o:['Les veines','Les artères','Les capillaires','L’aorte seulement'], e:'Dans les veines, la pression est faible. Les valvules empêchent le sang de redescendre, surtout dans les jambes.'}
+  ]},
+{ id:'lym', nom:'Système lymphatique', court:'Lymphatique', fonction:'Fonction de nutrition', color:'#4fd1a5', part:'lymph', node:[129,52],
+  blurb:'Le réseau discret qui draine les tissus et défend le corps. Un œdème fait tout enfler.',
+  ennemi:{nom:'Œdémax', type:'goutte', pal:{a:'#6fc3e8',b:'#2f86b8',o:'#123a5a',h:'#e2f6ff'}},
+  intro:'Toute la lymphe s’accumule autour de lui! Fais circuler tes réponses.',
+  fiche:[
+    '<b>Rôle :</b> récupérer le liquide (la lymphe) qui s’échappe des capillaires et le retourner dans le sang.',
+    '<b>Circulation :</b> la lymphe n’a pas de pompe; ce sont les contractions des muscles qui la font avancer.',
+    '<b>Ganglions lymphatiques :</b> ils filtrent la lymphe et abritent des globules blancs.',
+    '<b>Organes lymphatiques :</b> ganglions, rate, thymus, amygdales.',
+    '<b>Défense :</b> des lymphocytes produisent des anticorps spécifiques à un antigène. Un vaccin stimule cette production.'
+  ],
+  q:[
+    {q:'Quel est le rôle principal du système lymphatique?', o:['Retourner au sang le liquide sorti des capillaires','Pomper le sang dans les artères','Filtrer le sang pour faire l’urine','Produire la bile'], e:'Une partie du plasma s’échappe des capillaires. Les vaisseaux lymphatiques la récupèrent (lymphe) et la ramènent dans le sang.'},
+    {q:'Où la lymphe est-elle filtrée?', o:['Dans les ganglions lymphatiques','Dans les reins','Dans le foie','Dans les alvéoles'], e:'Les ganglions retiennent les microbes et contiennent beaucoup de globules blancs. Ils enflent parfois quand on est malade.'},
+    {q:'Qu’est-ce qui fait avancer la lymphe dans les vaisseaux lymphatiques?', o:['Les contractions des muscles squelettiques','Le cœur','Les reins','La moelle épinière'], e:'Le système lymphatique n’a pas de pompe : les muscles pressent les vaisseaux, et des valvules empêchent le retour.'},
+    {q:'Quelles cellules produisent les anticorps?', o:['Certains lymphocytes (globules blancs)','Les globules rouges','Les plaquettes','Les neurones'], e:'Les lymphocytes fabriquent des anticorps qui reconnaissent et neutralisent un antigène précis.'},
+    {q:'Comment appelle-t-on une substance étrangère qui déclenche la production d’anticorps?', o:['Un antigène','Une enzyme','Une hormone','Un nutriment'], e:'Un antigène est une molécule reconnue comme étrangère, par exemple à la surface d’un virus ou d’une bactérie.'},
+    {q:'Que contient généralement un vaccin?', o:['Un agent pathogène affaibli ou inactivé, ou une partie de celui-ci','Des anticorps déjà fabriqués','Des antibiotiques','Des globules rouges'], e:'Le vaccin présente un antigène sans danger : le corps produit des anticorps et garde une mémoire immunitaire.'},
+    {q:'Lequel de ces organes fait partie du système lymphatique?', o:['La rate','Le pancréas','La vessie','L’estomac'], e:'La rate, le thymus, les amygdales et les ganglions sont des organes lymphatiques.'}
+  ]},
+{ id:'exc', nom:'Système excréteur', court:'Excréteur', fonction:'Fonction de nutrition', color:'#f2d35a', part:'drop', node:[172,94],
+  blurb:'Les reins filtrent le sang jour et nuit. Un calcul bloque les voies urinaires.',
+  ennemi:{nom:'Calculoz', type:'rocher', pal:{a:'#d9b45a',b:'#a07a2c',o:'#3d2a0c',h:'#fff2a8'}},
+  intro:'Il bouche un uretère! Brise-le à coups de bonnes réponses.',
+  fiche:[
+    '<b>Rôle :</b> éliminer les déchets produits par les cellules et maintenir l’équilibre de l’eau et des sels.',
+    '<b>Voies urinaires :</b> reins → uretères → vessie → urètre.',
+    '<b>Les reins filtrent le sang.</b> Le néphron est l’unité de filtration du rein (environ un million par rein).',
+    '<b>L’urine</b> contient surtout de l’eau, de l’urée et des sels minéraux.',
+    '<b>Autres organes excréteurs :</b> poumons (CO₂ et vapeur d’eau), peau (sueur).'
+  ],
+  q:[
+    {q:'Quel organe filtre le sang pour produire l’urine?', o:['Les reins','La vessie','Le foie','Les uretères'], e:'Les reins filtrent le sang en continu. La majeure partie du liquide filtré est réabsorbée; le reste devient l’urine.'},
+    {q:'Quel est le rôle de la vessie?', o:['Emmagasiner l’urine','Filtrer le sang','Produire l’urée','Absorber l’eau des aliments'], e:'La vessie est un réservoir musculaire qui accumule l’urine avant son évacuation par l’urètre.'},
+    {q:'Quels conduits transportent l’urine des reins à la vessie?', o:['Les uretères','L’urètre','Les bronches','Les trompes de Fallope'], e:'Attention : les uretères (deux) vont des reins à la vessie; l’urètre (un seul) va de la vessie vers l’extérieur.'},
+    {q:'Quelle est l’unité de filtration du rein?', o:['Le néphron','Le neurone','L’alvéole','La villosité'], e:'Chaque rein contient environ un million de néphrons qui filtrent le sang et forment l’urine.'},
+    {q:'Quel déchet, produit par le foie, est le principal déchet de l’urine?', o:['L’urée','Le glucose','L’hémoglobine','Le dioxygène'], e:'L’urée vient de la dégradation des protéines. Le sang la transporte jusqu’aux reins.'},
+    {q:'En plus des reins, quel organe excrète du CO₂?', o:['Les poumons','L’estomac','La vessie','Le cœur'], e:'Les poumons rejettent le CO₂ et de la vapeur d’eau. La peau excrète aussi de la sueur.'},
+    {q:'En plus d’éliminer des déchets, les reins…', o:['régulent la quantité d’eau et de sels du corps','produisent la bile','digèrent les protéines','produisent les anticorps'], e:'Si tu bois beaucoup, l’urine est abondante et diluée; si tu manques d’eau, elle est plus concentrée.'}
+  ]},
+{ id:'mus', nom:'Système musculosquelettique', court:'Musculosquel.', fonction:'Fonction de relation', color:'#ff8a6b', part:'fiber', node:[149,148],
+  blurb:'206 os et plus de 600 muscles. Un os fracturé fait grincer toutes les articulations.',
+  ennemi:{nom:'Fractura', type:'os', pal:{a:'#eee3cf',b:'#bfae90',o:'#3d3428',h:'#ffffff'}},
+  intro:'Il fait grincer toutes les articulations! Tiens bon.',
+  fiche:[
+    '<b>Le squelette adulte compte 206 os.</b> Fonctions : soutenir, protéger, permettre le mouvement, fabriquer les cellules sanguines (moelle rouge) et stocker des minéraux (calcium).',
+    '<b>Articulations :</b> immobiles (os du crâne), semi-mobiles (vertèbres), mobiles (genou, épaule).',
+    '<b>Ligaments :</b> relient un os à un os. <b>Tendons :</b> relient un muscle à un os.',
+    '<b>3 types de muscles :</b> squelettiques (volontaires), lisses (involontaires, organes), cardiaque (involontaire, cœur).',
+    '<b>Un muscle ne peut que tirer</b> en se contractant : les muscles travaillent en paires antagonistes (biceps / triceps).'
+  ],
+  q:[
+    {q:'Combien d’os compte le squelette d’un adulte?', o:['206','106','306','260'], e:'Un bébé en a davantage (environ 300), mais plusieurs os se soudent pendant la croissance.'},
+    {q:'Quelle structure relie un muscle à un os?', o:['Le tendon','Le ligament','Le cartilage','Le nerf'], e:'Tendon : muscle → os. Ligament : os → os, au niveau des articulations.'},
+    {q:'Pour plier le bras au coude, quel muscle se contracte?', o:['Le biceps','Le triceps','Le deltoïde','Le quadriceps'], e:'Le biceps se contracte et tire l’avant-bras vers le haut; son antagoniste, le triceps, se relâche.'},
+    {q:'Quel type de muscle se trouve dans la paroi de l’estomac?', o:['Le muscle lisse','Le muscle squelettique','Le muscle cardiaque','Le muscle volontaire'], e:'Les muscles lisses tapissent les organes creux (estomac, intestins, vaisseaux). Ils sont involontaires.'},
+    {q:'Où sont fabriquées les cellules sanguines?', o:['Dans la moelle rouge des os','Dans la moelle épinière','Dans les ligaments','Dans le cartilage'], e:'Piège classique : la moelle rouge (dans les os) fabrique les cellules du sang; la moelle épinière fait partie du système nerveux.'},
+    {q:'Chez l’adulte, les os du crâne sont reliés par des articulations…', o:['immobiles','mobiles','semi-mobiles','à pivot'], e:'Les os du crâne sont soudés par des sutures : l’articulation ne bouge pas et protège l’encéphale.'},
+    {q:'Laquelle de ces fonctions n’est PAS une fonction du squelette?', o:['Digérer les aliments','Protéger les organes','Soutenir le corps','Mettre en réserve du calcium'], e:'Le squelette soutient, protège, permet le mouvement, fabrique les cellules sanguines et stocke des minéraux.'}
+  ]},
+{ id:'ner', nom:'Système nerveux', court:'Nerveux', fonction:'Fonction de relation', color:'#a77ee8', part:'spark', node:[160,19],
+  blurb:'Le centre de commande du corps, avec les organes des sens. Un neurone déréglé envoie des influx dans tous les sens.',
+  ennemi:{nom:'Névralgor', type:'neurone', pal:{a:'#9b6be0',b:'#5c34a3',o:'#22113f',h:'#ffe66b'}},
+  intro:'Il brouille les influx nerveux! Garde l’esprit clair.',
+  fiche:[
+    '<b>Rôle :</b> recevoir l’information, l’analyser et commander une réponse.',
+    '<b>SNC :</b> encéphale (cerveau, cervelet, tronc cérébral) et moelle épinière. <b>SNP :</b> les nerfs.',
+    '<b>Neurone :</b> dendrites (reçoivent l’influx), corps cellulaire, axone (transmet l’influx). La synapse relie deux neurones.',
+    '<b>Cerveau :</b> pensée, mémoire, mouvements volontaires. <b>Cervelet :</b> équilibre et coordination. <b>Bulbe rachidien :</b> respiration, rythme cardiaque.',
+    '<b>Réflexe :</b> réponse rapide et involontaire commandée par la moelle épinière.',
+    '<b>Sens :</b> l’œil (rétine : cônes et bâtonnets), l’oreille (cochlée pour l’ouïe, canaux semi-circulaires pour l’équilibre), la peau, le nez, la langue.'
+  ],
+  q:[
+    {q:'Quelle partie du neurone reçoit l’influx nerveux?', o:['Les dendrites','L’axone','La synapse','La gaine de myéline'], e:'Les dendrites captent l’influx et l’amènent au corps cellulaire; l’axone le transmet ensuite plus loin.'},
+    {q:'Quelle partie de l’encéphale coordonne les mouvements et l’équilibre?', o:['Le cervelet','Le cerveau','Le bulbe rachidien','L’hypophyse'], e:'Le cervelet, à l’arrière sous le cerveau, ajuste les mouvements pour qu’ils soient précis et coordonnés.'},
+    {q:'Quand tu retires ta main d’un objet brûlant, ce réflexe est d’abord traité par…', o:['la moelle épinière','le cerveau','le cervelet','le nerf optique'], e:'Dans un arc réflexe, la moelle épinière commande la réponse directement. Le cerveau reçoit l’information juste après : tu sens la douleur.'},
+    {q:'Le système nerveux central (SNC) est formé…', o:['de l’encéphale et de la moelle épinière','des nerfs et de la moelle épinière','du cerveau seulement','des nerfs crâniens et rachidiens'], e:'Les nerfs forment le système nerveux périphérique, qui relie le SNC au reste du corps.'},
+    {q:'Quelle structure de l’œil contient les cellules sensibles à la lumière?', o:['La rétine','Le cristallin','L’iris','La cornée'], e:'La rétine contient les cônes (couleurs) et les bâtonnets (faible lumière). Le nerf optique transmet le message au cerveau.'},
+    {q:'Quelle partie de l’oreille interne participe à l’équilibre?', o:['Les canaux semi-circulaires','La cochlée','Le tympan','Le pavillon'], e:'Les canaux semi-circulaires détectent les mouvements de la tête. La cochlée, elle, sert à l’audition.'},
+    {q:'Que contrôle le bulbe rachidien?', o:['La respiration et le rythme cardiaque','La mémoire','Le langage','La vision des couleurs'], e:'Le bulbe rachidien, dans le tronc cérébral, gère des fonctions vitales automatiques.'}
+  ]},
+{ id:'rep', nom:'Système reproducteur', court:'Reproducteur', fonction:'Fonction de reproduction', color:'#ff7ac8', hp:7, part:'cell', node:[160,112],
+  blurb:'Les organes qui assurent la continuité de l’espèce. Un virus transmis sexuellement s’y cache.',
+  ennemi:{nom:'Virionix', type:'virus', pal:{a:'#e85fb3',b:'#9c2a72',o:'#3d0a2b',h:'#ffd0ec'}},
+  intro:'Ce virus se cache dans le système reproducteur! Montre ce que tu sais.',
+  fiche:[
+    '<b>Rôle :</b> produire des gamètes (cellules reproductrices) et permettre la naissance d’un nouvel être humain.',
+    '<b>Spermatogenèse :</b> dans les tubes séminifères des testicules, dès la puberté et en continu toute la vie. Le scrotum garde les testicules un peu plus frais que le corps. Trajet : épididyme → canal déférent → urètre.',
+    '<b>Érection :</b> les corps caverneux du pénis se remplissent de sang. <b>Éjaculation :</b> des contractions expulsent le sperme par l’urètre. Sperme = spermatozoïdes + liquide séminal (vésicules séminales, prostate, glandes de Cowper).',
+    '<b>Ovogenèse :</b> la fille naît avec un stock limité d’ovules immatures. De la puberté à la ménopause, environ un ovule mûrit par cycle dans un follicule. Fécondation dans la trompe de Fallope; nidation dans l’utérus.',
+    '<b>Cycle ovarien :</b> phase folliculaire (le follicule mûrit et produit de l’œstrogène) → ovulation vers le 14ᵉ jour (pic de LH) → phase lutéale (le corps jaune produit de la progestérone).',
+    '<b>Cycle menstruel :</b> menstruations (jours 1 à 5 environ, l’endomètre se détache) → l’endomètre s’épaissit (œstrogène) → il est maintenu (progestérone). Sans fécondation, la progestérone chute et un nouveau cycle commence.',
+    '<b>Hormones :</b> l’hypophyse sécrète la FSH et la LH. Femme : la FSH fait mûrir le follicule, la LH déclenche l’ovulation. Homme : la FSH stimule la spermatogenèse, la LH stimule la production de testostérone.',
+    '<b>Méthode du calendrier :</b> éviter les relations sexuelles pendant la période fertile autour de l’ovulation (ovule fécondable ≈ 24 h, spermatozoïdes vivants jusqu’à ≈ 5 jours). Peu fiable, car l’ovulation varie, et elle ne protège pas des ITSS.',
+    '<b>Le condom</b> est le seul moyen de contraception qui protège aussi contre les ITSS.'
+  ],
+  q:[
+    {q:'Où la fécondation a-t-elle lieu habituellement?', o:['Dans une trompe de Fallope','Dans l’utérus','Dans l’ovaire','Dans le vagin'], e:'Le spermatozoïde rencontre l’ovule dans la trompe. L’œuf voyage ensuite jusqu’à l’utérus.'},
+    {q:'Quel organe produit les spermatozoïdes?', o:['Les testicules','La prostate','Les vésicules séminales','L’épididyme'], e:'Les testicules produisent les spermatozoïdes et la testostérone. L’épididyme les emmagasine pendant leur maturation.'},
+    {q:'Quelles hormones sont produites par les ovaires?', o:['L’œstrogène et la progestérone','La testostérone seulement','L’insuline et le glucagon','L’adrénaline'], e:'Ces hormones règlent le cycle menstruel et préparent la paroi de l’utérus.'},
+    {q:'Dans un cycle menstruel de 28 jours, l’ovulation a lieu environ…', o:['vers le 14ᵉ jour','le 1ᵉʳ jour','le 28ᵉ jour','le 7ᵉ jour'], e:'Le jour 1 correspond au début des menstruations; l’ovulation survient vers le milieu du cycle. La durée varie d’une personne à l’autre.'},
+    {q:'Qu’est-ce que la nidation?', o:['La fixation de l’embryon dans la paroi de l’utérus','L’union d’un ovule et d’un spermatozoïde','La libération d’un ovule par l’ovaire','L’accouchement'], e:'Quelques jours après la fécondation, l’embryon s’implante dans l’endomètre, la paroi de l’utérus.'},
+    {q:'Quelle glande déclenche la puberté en stimulant les organes reproducteurs?', o:['L’hypophyse','La thyroïde','Le pancréas','La rate'], e:'L’hypophyse, à la base du cerveau, sécrète des hormones qui stimulent les testicules et les ovaires.'},
+    {q:'Quel moyen protège à la fois contre une grossesse et contre les ITSS?', o:['Le condom','La pilule contraceptive','Le stérilet','L’anneau vaginal'], e:'Les méthodes hormonales préviennent la grossesse, mais seul le condom forme une barrière contre les ITSS.'},
+    {q:'Quand l’ovogenèse commence-t-elle?', o:['Avant la naissance : la fille naît avec un stock d’ovules immatures','À la puberté seulement','À l’âge adulte','À chaque menstruation, avec de nouvelles cellules'], e:'Les ovaires contiennent dès la naissance un stock limité. À partir de la puberté, environ un ovule arrive à maturité à chaque cycle, jusqu’à la ménopause.'},
+    {q:'Dans l’ovaire, dans quelle structure l’ovule mûrit-il?', o:['Le follicule','Le corps jaune','L’endomètre','Le tube séminifère'], e:'Le follicule entoure l’ovule et le nourrit pendant sa maturation. Il produit aussi de l’œstrogène.'},
+    {q:'Où se déroule la spermatogenèse?', o:['Dans les tubes séminifères des testicules','Dans la prostate','Dans l’épididyme','Dans les vésicules séminales'], e:'Les spermatozoïdes sont fabriqués dans les tubes séminifères, puis ils terminent leur maturation dans l’épididyme.'},
+    {q:'Qu’est-ce qui distingue la spermatogenèse de l’ovogenèse?', o:['Elle commence à la puberté et se poursuit toute la vie, en continu','Elle commence avant la naissance','Elle produit un seul gamète par mois','Elle s’arrête vers 50 ans'], e:'Dès la puberté, les testicules produisent des millions de spermatozoïdes chaque jour, sans cycle. L’ovogenèse, elle, est cyclique et s’arrête à la ménopause.'},
+    {q:'Pourquoi les testicules sont-ils situés dans le scrotum, à l’extérieur du corps?', o:['La spermatogenèse a besoin d’une température un peu plus basse que celle du corps','Pour mieux recevoir le sang','Pour produire l’urine','Pour protéger la vessie'], e:'La production des spermatozoïdes se fait mieux à environ 2 à 3 °C sous la température du corps.'},
+    {q:'Après l’ovulation, que devient le follicule vide dans l’ovaire?', o:['Le corps jaune, qui produit de la progestérone','Un nouvel ovule','L’endomètre','Une trompe de Fallope'], e:'Le corps jaune sécrète surtout de la progestérone. Sans fécondation, il dégénère vers la fin du cycle.'},
+    {q:'Dans le cycle ovarien, quelle est la bonne suite?', o:['Phase folliculaire → ovulation → phase lutéale','Phase lutéale → ovulation → phase folliculaire','Ovulation → menstruation → phase folliculaire','Nidation → ovulation → phase lutéale'], e:'Le follicule mûrit (phase folliculaire), libère l’ovule (ovulation), puis devient le corps jaune (phase lutéale).'},
+    {q:'Que se passe-t-il pendant les menstruations?', o:['La couche superficielle de l’endomètre se détache et s’écoule avec du sang','L’ovule est libéré par l’ovaire','L’endomètre s’épaissit','Le corps jaune se forme'], e:'Les menstruations marquent le jour 1 du cycle : sans fécondation, l’endomètre préparé pour accueillir un embryon s’élimine.'},
+    {q:'Qu’est-ce qui déclenche les menstruations quand il n’y a pas eu de fécondation?', o:['La baisse de la progestérone (et de l’œstrogène)','Une hausse de la testostérone','La nidation','L’ovulation'], e:'Le corps jaune dégénère, la progestérone chute et l’endomètre n’est plus maintenu : il se détache.'},
+    {q:'Selon la méthode du calendrier, à quel moment d’un cycle de 28 jours le risque de grossesse est-il le plus élevé?', o:['Dans les jours autour de l’ovulation, vers le milieu du cycle','Pendant les menstruations seulement','Tout à la fin du cycle (jours 26 à 28)','Le risque est le même tous les jours'], e:'La méthode du calendrier consiste à éviter les relations sexuelles pendant la période fertile, autour de l’ovulation.'},
+    {q:'Pourquoi la période fertile commence-t-elle quelques jours AVANT l’ovulation?', o:['Les spermatozoïdes peuvent survivre jusqu’à environ 5 jours dans les voies génitales','L’ovule est libéré plusieurs fois','L’ovule vit environ 2 semaines','La progestérone attire les spermatozoïdes'], e:'Des spermatozoïdes présents avant l’ovulation peuvent encore féconder l’ovule, qui reste fécondable environ 24 heures.'},
+    {q:'Pourquoi la méthode du calendrier est-elle peu fiable?', o:['La date de l’ovulation varie, surtout si les cycles sont irréguliers','Elle empêche l’ovulation','Elle bloque les spermatozoïdes','Elle dépend de la pilule'], e:'Le stress, la maladie ou l’adolescence peuvent décaler l’ovulation. Cette méthode ne protège pas non plus des ITSS.'},
+    {q:'Qu’est-ce qui provoque l’érection du pénis?', o:['Les corps caverneux se remplissent de sang','Un muscle s’y contracte comme le biceps','Un os se redresse','Le liquide séminal s’accumule'], e:'L’érection est un réflexe commandé par le système nerveux : les vaisseaux se dilatent et le sang remplit les tissus érectiles (corps caverneux).'},
+    {q:'Pendant l’éjaculation, par quel conduit le sperme sort-il du corps?', o:['L’urètre','L’uretère','Le canal déférent seulement','La trompe de Fallope'], e:'L’urètre sert aussi à l’urine. Pendant l’éjaculation, un sphincter ferme la vessie pour que l’urine et le sperme ne se mélangent pas.'},
+    {q:'Le sperme contient des spermatozoïdes et du liquide séminal. D’où vient ce liquide?', o:['Des vésicules séminales, de la prostate et des glandes de Cowper','Des testicules seulement','De la vessie','Des reins'], e:'Ce liquide nourrit les spermatozoïdes et facilite leur déplacement. Les spermatozoïdes ne forment qu’une petite partie du sperme.'},
+    {q:'Chez la femme, quelle hormone de l’hypophyse déclenche l’ovulation?', o:['La LH (hormone lutéinisante)','La FSH','La progestérone','La testostérone'], e:'Un pic de LH au milieu du cycle provoque la rupture du follicule et la libération de l’ovule.'},
+    {q:'Quel est le rôle de la FSH (hormone folliculostimulante)?', o:['Stimuler la maturation des follicules chez la femme et la spermatogenèse chez l’homme','Déclencher les menstruations','Produire le liquide séminal','Épaissir directement l’endomètre'], e:'La FSH, sécrétée par l’hypophyse, agit sur les ovaires et sur les testicules.'},
+    {q:'Quelle hormone, produite par les testicules, est responsable des caractères sexuels secondaires masculins?', o:['La testostérone','La progestérone','La LH','L’œstrogène'], e:'La testostérone provoque la mue de la voix, la pilosité et le développement musculaire, et elle soutient la spermatogenèse. Sa production est stimulée par la LH.'},
+    {q:'Quelle hormone fait épaissir l’endomètre après les menstruations?', o:['L’œstrogène','La testostérone','La FSH','L’insuline'], e:'L’œstrogène, produit par le follicule en croissance, reconstruit l’endomètre. La progestérone le maintient ensuite.'}
+  ]}
+];
+
+const FINAL = { id:'fin', nom:'Cœur du corps', court:'Pathogène', fonction:'Révision : tout le corps', color:'#ffffff', part:'mix', node:[160,71], hp:10,
+  blurb:'Tous les systèmes travaillent ensemble. Le Pathogène Suprême attaque le corps entier.',
+  ennemi:{nom:'Pathogène Suprême', type:'supreme', pal:{a:'#3a1550',b:'#ff4fa3',o:'#0d0414',h:'#ffe66b'}},
+  intro:'Il connaît tous les systèmes du corps. Toi aussi. Prouve-le!',
+  fiche:[
+    '<b>Fonction de nutrition :</b> systèmes digestif, respiratoire, circulatoire, lymphatique et excréteur. Ils apportent aux cellules ce dont elles ont besoin et éliminent leurs déchets.',
+    '<b>Fonction de relation :</b> systèmes nerveux et musculosquelettique, avec les organes des sens. Ils permettent de percevoir l’environnement et d’y réagir.',
+    '<b>Fonction de reproduction :</b> système reproducteur. Il assure la continuité de l’espèce.',
+    '<b>Les systèmes collaborent :</b> l’O₂ capté par les poumons est transporté par le sang jusqu’aux muscles, commandés par les nerfs.',
+    '<b>Ce boss a 10 PV</b> et pose des questions sur tous les systèmes.'
+  ],
+  q:[
+    {q:'L’O₂ capté par les poumons est transporté jusqu’aux cellules par quel système?', o:['Le système circulatoire','Le système lymphatique','Le système digestif','Le système excréteur'], e:'Respiratoire et circulatoire travaillent en équipe : les globules rouges amènent l’O₂ à toutes les cellules.'},
+    {q:'Après l’absorption dans l’intestin grêle, les nutriments passent…', o:['dans le sang et dans la lymphe','dans la vessie','dans les alvéoles','dans les uretères'], e:'La plupart des nutriments entrent dans les capillaires sanguins des villosités; les lipides passent surtout par les vaisseaux lymphatiques.'},
+    {q:'Quel système commande la contraction des muscles squelettiques?', o:['Le système nerveux','Le système excréteur','Le système lymphatique','Le système digestif'], e:'Les neurones moteurs transmettent l’influx nerveux aux muscles, qui se contractent et tirent sur les os.'},
+    {q:'Comment le CO₂ produit par les cellules quitte-t-il le corps?', o:['Le sang le transporte aux poumons, qui l’expirent','Les reins le filtrent dans l’urine','L’intestin l’élimine dans les selles','Il reste stocké dans les muscles'], e:'Circulatoire + respiratoire : le CO₂ diffuse des capillaires vers les alvéoles, puis il est expiré.'},
+    {q:'Pendant un effort, les rythmes cardiaque et respiratoire augmentent parce que…', o:['les muscles ont besoin de plus d’O₂ et produisent plus de CO₂','les os ont besoin de plus de calcium','l’estomac digère plus vite','les reins filtrent moins'], e:'Les cellules musculaires produisent plus d’énergie : le corps accélère l’apport d’O₂ et l’évacuation du CO₂.'},
+    {q:'L’urée est produite par le foie, transportée par ___, puis éliminée par ___.', o:['le sang / les reins','la lymphe / les poumons','le sang / l’intestin','les nerfs / la peau'], e:'Foie → sang → reins : trois systèmes collaborent pour éliminer ce déchet.'},
+    {q:'La moelle rouge, qui fabrique les cellules sanguines, se trouve dans…', o:['les os','la moelle épinière','le cœur','les ganglions'], e:'Le squelette aide donc le système circulatoire en produisant globules rouges, globules blancs et plaquettes.'},
+    {q:'Quels systèmes assurent la fonction de nutrition?', o:['Digestif, respiratoire, circulatoire, lymphatique et excréteur','Nerveux et musculosquelettique','Reproducteur seulement','Nerveux, digestif et reproducteur'], e:'Ils apportent aux cellules ce dont elles ont besoin (nutriments, O₂) et éliminent leurs déchets.'},
+    {q:'Les systèmes nerveux et musculosquelettique assurent la fonction de…', o:['relation','nutrition','reproduction','excrétion'], e:'La fonction de relation permet de percevoir l’environnement (sens, nerfs) et d’y réagir (muscles, os).'},
+    {q:'Comment les hormones atteignent-elles leurs organes cibles?', o:['Par le sang','Par les nerfs','Par les uretères','Par l’œsophage'], e:'Les hormones sont des messagers chimiques libérés dans le sang, qui les transporte partout dans le corps.'}
+  ]};
+
+const ALL = [...SYS, FINAL];
+
+/* Décors des niveaux : ciel, décor de fond, sol, briques */
+const THEMES={
+  dig:{sky:['#ffd9ae','#ffc48f'], far:'#f4a273', far2:'#e98a5c', deco:'villi',   top:'#ffa775', mid:'#c8603a', dark:'#7a3016', brick:'#d9744a', mortar:'#7a3016', hard:'#a8502c'},
+  res:{sky:['#a9dcff','#84c8ff'], far:'#ffc1cf', far2:'#ff9fb5', deco:'alveoli', top:'#ffb3c4', mid:'#e0708a', dark:'#8f3049', brick:'#e88aa0', mortar:'#8f3049', hard:'#c45a74'},
+  cir:{sky:['#ffc0c0','#ff9c9c'], far:'#f07080', far2:'#e05565', deco:'vessels', top:'#ff7a86', mid:'#b8243a', dark:'#6a0c1c', brick:'#d23a4e', mortar:'#6a0c1c', hard:'#9a1a2e'},
+  lym:{sky:['#c4f6e2','#9debcf'], far:'#74d8b3', far2:'#4fbf98', deco:'nodes',   top:'#74e4ba', mid:'#2f9a78', dark:'#145a44', brick:'#3fb08a', mortar:'#145a44', hard:'#25805f'},
+  exc:{sky:['#fff5bf','#ffe98f'], far:'#f0cf55', far2:'#e0b83a', deco:'drops',   top:'#ffd84a', mid:'#b8902a', dark:'#6a4e10', brick:'#d4a83a', mortar:'#6a4e10', hard:'#9a7420'},
+  mus:{sky:['#ffd8cb','#ffbca9'], far:'#fff4e6', far2:'#e8d6c0', deco:'bones',   top:'#ff8a7a', mid:'#b8433c', dark:'#6a1a18', brick:'#cc5a50', mortar:'#6a1a18', hard:'#9a3530'},
+  ner:{sky:['#241a5e','#34287f'], far:'#5a44b0', far2:'#4a3698', deco:'neurons', top:'#b494ff', mid:'#6a4fc0', dark:'#2e1f6a', brick:'#7f62d4', mortar:'#2e1f6a', hard:'#5a40a8'},
+  rep:{sky:['#ffd8ee','#ffc2e2'], far:'#ffa3d2', far2:'#f080bc', deco:'cells',   top:'#ff8cc8', mid:'#c2477f', dark:'#6a1a44', brick:'#e06aa4', mortar:'#6a1a44', hard:'#a83a6e'},
+  fin:{sky:['#24082f','#3a0f48'], far:'#6a1a6a', far2:'#521452', deco:'mix',     top:'#ff4fa3', mid:'#5a1a6a', dark:'#250832', brick:'#7a2a8a', mortar:'#250832', hard:'#5a1a6a'}
+};
+
+/* =========================================================
+   AUDIO — petit synthé chiptune (WebAudio)
+   ========================================================= */
+const A = (() => {
+  let ac=null, master, mus, sfxG, noiseBuf, muted=false, track=null, step=0, nextT=0, cur=null;
+  let want='title';
+  const SEMI={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  const mf = m => 440*Math.pow(2,(m-69)/12);
+  function parse(str){
+    const out=[]; let lastIdx=-1;
+    str.replace(/\|/g,' ').trim().split(/\s+/).forEach(tok=>{
+      if(tok==='-'){ if(lastIdx>=0) out[lastIdx].len++; out.push(null); return; }
+      if(tok==='.'){ out.push(null); lastIdx=-1; return; }
+      const m=tok.match(/^([A-G])(#|b)?(\d)$/);
+      if(!m){ out.push(null); return; }
+      const midi=(+m[3]+1)*12+SEMI[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0);
+      out.push({m:midi,len:1}); lastIdx=out.length-1;
+    });
+    return out;
+  }
+  const TR={
+    title:{bpm:112, loop:true, lead:
+      'E5 - G5 - C6 - B5 A5 | G5 - E5 - C5 - D5 E5 | F5 - A5 - C6 - B5 A5 | G5 - - - . . . . | E5 - G5 - C6 - D6 E6 | D6 C6 B5 A5 G5 - E5 G5 | F5 E5 D5 C5 B4 C5 D5 B4 | C5 - - - . . . .',
+      bass:'C3 . G2 . E3 . G2 . | C3 . G2 . E3 . G2 . | F2 . C3 . A2 . C3 . | G2 . D3 . B2 . D3 . | C3 . G2 . E3 . G2 . | A2 . E3 . C3 . E3 . | F2 . C3 . G2 . D3 . | C3 . G2 . C3 - - -',
+      drum:'k . h . s . h .'},
+    map:{bpm:132, loop:true, lead:
+      'C5 . E5 G5 . E5 C5 . | D5 . F5 A5 . F5 D5 . | E5 . G5 C6 . G5 E5 . | D5 E5 F5 G5 A5 G5 F5 D5 | C5 . E5 G5 . E5 C5 . | F5 . A5 C6 . A5 F5 . | E5 G5 F5 D5 B4 D5 G4 B4 | C5 - - - . . . .',
+      bass:'C3 . G2 . C3 . G2 . | D3 . A2 . D3 . A2 . | E3 . B2 . C3 . G2 . | G2 . D3 . G2 . B2 . | C3 . G2 . C3 . G2 . | F2 . C3 . F2 . A2 . | G2 . D3 . G2 . B2 . | C3 . G2 . C3 . . .',
+      drum:'k . h . s . h h'},
+    level:{bpm:150, loop:true, lead:
+      'F5 . A5 C6 . A5 F5 . | G5 . Bb5 D6 . C6 A5 . | F5 . A5 C6 D6 C6 A5 F5 | G5 - - . E5 - G5 . | F5 . A5 C6 . F6 E6 D6 | C6 . A5 . Bb5 A5 G5 F5 | E5 G5 C6 E6 D6 C6 Bb5 G5 | F5 - - - . . C5 E5',
+      bass:'F2 . C3 . F2 . C3 . | Bb2 . F3 . Bb2 . F3 . | F2 . C3 . F2 . A2 . | C3 . G2 . C3 . E3 . | F2 . C3 . F2 . C3 . | Bb2 . F2 . Bb2 . G2 . | C3 . G2 . C3 . E2 . | F2 . C3 . F2 - - -',
+      drum:'k . h k s . h h'},
+    battle:{bpm:156, loop:true, lead:
+      'A4 C5 E5 A5 G5 E5 C5 E5 | F5 E5 D5 C5 B4 C5 D5 E5 | A4 C5 E5 A5 B5 A5 G5 E5 | F5 D5 B4 G#4 E5 - - . | C5 . C5 D5 E5 . E5 . | D5 . D5 C5 B4 . G#4 . | A4 C5 E5 A5 C6 B5 A5 G#5 | A5 - E5 - A4 - . .',
+      bass:'A2 A3 A2 A3 A2 A3 A2 A3 | F2 F3 F2 F3 F2 F3 F2 F3 | A2 A3 A2 A3 A2 A3 A2 A3 | E2 E3 E2 E3 E2 E3 E2 E3 | C3 C4 C3 C4 C3 C4 C3 C4 | G2 G3 G2 G3 E2 E3 E2 E3 | F2 F3 F2 F3 E2 E3 E2 E3 | A2 A3 A2 A3 A2 A3 A2 A3',
+      drum:'k h s h k k s h'},
+    boss:{bpm:170, loop:true, lead:
+      'D5 D5 F5 D5 A5 D5 G5 F5 | E5 E5 G5 E5 Bb5 A5 G5 E5 | D5 D5 F5 D5 A5 D5 C6 A5 | Bb5 A5 G5 F5 E5 F5 G5 A5 | D6 . C6 . A5 . F5 . | G5 . F5 . E5 . C#5 . | D5 F5 A5 D6 C6 Bb5 A5 G5 | A5 - - - C#5 - E5 .',
+      bass:'D2 D3 D2 D3 D2 D3 D2 D3 | C2 C3 C2 C3 C2 C3 C2 C3 | Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 Bb1 Bb2 | A1 A2 A1 A2 A1 A2 A1 A2 | D2 D3 D2 D3 D2 D3 D2 D3 | C2 C3 C2 C3 A1 A2 A1 A2 | Bb1 Bb2 Bb1 Bb2 G1 G2 G1 G2 | A1 A2 A1 A2 A1 A2 A1 A2',
+      drum:'k h s k k h s s'},
+    win:{bpm:160, loop:false, lead:'C5 E5 G5 C6 - - G5 C6 - - - - . . . .', bass:'C3 . . E3 . . G2 C3 - - - - . . . .', drum:'k . . . s . . . k . . . . . . .'},
+    lose:{bpm:100, loop:false, lead:'E5 D#5 D5 C#5 C5 - - - . . . .', bass:'A2 . . . F2 - - - . . . .', drum:'. . . . . . . . . . . .'}
+  };
+  for(const k in TR){ const t=TR[k]; t.L=parse(t.lead); t.B=parse(t.bass); t.D=t.drum.trim().split(/\s+/); t.len=t.L.length; }
+
+  function init(){
+    if(ac) return true;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
+    try{ ac=new AC(); }catch(e){ return false; }
+    master=ac.createGain(); master.gain.value=muted?0:0.6; master.connect(ac.destination);
+    mus=ac.createGain(); mus.gain.value=0.15; mus.connect(master);
+    sfxG=ac.createGain(); sfxG.gain.value=0.3; sfxG.connect(master);
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*0.5,ac.sampleRate);
+    const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    setInterval(tick,25);
+    play(want,true);
+    return true;
+  }
+  function tone(f,t,dur,type,vol,dest,slideTo){
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.008);
+    g.gain.setValueAtTime(vol,t+Math.max(0.01,dur-0.03)); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+0.02);
+  }
+  function noise(t,dur,vol,dest,hp){
+    const s=ac.createBufferSource(); s.buffer=noiseBuf;
+    const f=ac.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp||1000;
+    const g=ac.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t+dur+0.02);
+  }
+  function schedule(i,t){
+    const sd=60/track.bpm/2;
+    const l=track.L[i], b=track.B[i], d=track.D[i%track.D.length];
+    if(l) tone(mf(l.m),t,sd*l.len*0.9,'square',0.22,mus);
+    if(b) tone(mf(b.m),t,sd*b.len*0.9,'triangle',0.55,mus);
+    if(d==='k') tone(160,t,0.12,'sine',0.8,mus,40);
+    else if(d==='s') noise(t,0.12,0.35,mus,1600);
+    else if(d==='h') noise(t,0.035,0.14,mus,7000);
+  }
+  function tick(){
+    if(!ac||!track) return;
+    const sd=60/track.bpm/2;
+    while(nextT<ac.currentTime+0.15){
+      schedule(step,nextT); nextT+=sd; step++;
+      if(step>=track.len){ if(track.loop) step=0; else { track=null; cur=null; break; } }
+    }
+  }
+  function play(name,force){
+    want=name;
+    if(!ac) return;
+    if(cur===name && !force) return;
+    cur=name; track=TR[name]; step=0; nextT=ac.currentTime+0.06;
+  }
+  function sfx(name){
+    if(!ac||muted) return;
+    const t=ac.currentTime+0.01, g=sfxG;
+    switch(name){
+      case 'select': tone(880,t,0.05,'square',0.25,g); break;
+      case 'confirm': tone(660,t,0.06,'square',0.3,g); tone(990,t+0.06,0.08,'square',0.3,g); break;
+      case 'blip': tone(1200,t,0.02,'square',0.07,g); break;
+      case 'jump': tone(300,t,0.16,'square',0.18,g,720); break;
+      case 'atp': tone(1319,t,0.05,'square',0.18,g); tone(1760,t+0.05,0.1,'square',0.18,g); break;
+      case 'stomp': tone(520,t,0.12,'square',0.25,g,110); noise(t,0.08,0.3,g,1500); break;
+      case 'bump': tone(150,t,0.1,'triangle',0.7,g,70); break;
+      case 'block': [784,988,1175,1568].forEach((f,i)=>tone(f,t+i*0.05,0.06,'square',0.22,g)); break;
+      case 'checkpoint': [523,784,1047].forEach((f,i)=>tone(f,t+i*0.08,0.1,'triangle',0.5,g)); break;
+      case 'fall': tone(800,t,0.55,'square',0.2,g,90); break;
+      case 'shoot': tone(1400,t,0.14,'square',0.18,g,450); break;
+      case 'hit': noise(t,0.16,0.5,g,700); tone(420,t,0.16,'square',0.3,g,90); break;
+      case 'crit': noise(t,0.2,0.55,g,600); [1047,1319,1568,2093].forEach((f,i)=>tone(f,t+i*0.045,0.05,'square',0.25,g)); break;
+      case 'hurt': tone(240,t,0.28,'square',0.35,g,70); noise(t,0.22,0.35,g,400); break;
+      case 'heal': [523,659,784,1047].forEach((f,i)=>tone(f,t+i*0.06,0.08,'triangle',0.5,g)); break;
+      case 'level': [523,659,784,1047,1319].forEach((f,i)=>tone(f,t+i*0.07,0.09,'square',0.25,g)); break;
+      case 'die': noise(t,0.7,0.5,g,250); tone(700,t,0.7,'square',0.2,g,50); break;
+    }
+  }
+  function setMuted(m){ muted=m; if(master) master.gain.value=m?0:0.6; }
+  document.addEventListener('visibilitychange',()=>{ if(!ac) return; if(document.hidden) ac.suspend(); else ac.resume(); });
+  return {init,play,sfx,setMuted,get muted(){return muted;}};
+})();
+
+/* =========================================================
+   CANVAS — primitives pixel
+   ========================================================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const W=320, H=180, TS=16, ROWS=12, VY=12;
+const FONT_PX='"Pixelify Sans", monospace', FONT_HUD='"Press Start 2P", monospace';
+function R(x,y,w,h,c){ if(w<=0||h<=0) return; ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)); }
+function disc(cx,cy,r,c){ cx=Math.round(cx); cy=Math.round(cy); r=Math.round(r); if(r<=0){R(cx,cy,1,1,c);return;} ctx.fillStyle=c; for(let dy=-r;dy<=r;dy++){ const hw=Math.floor(Math.sqrt(r*r-dy*dy)+0.35); ctx.fillRect(cx-hw,cy+dy,hw*2+1,1);} }
+function ell(cx,cy,rx,ry,c){ cx=Math.round(cx); cy=Math.round(cy); ctx.fillStyle=c; for(let dy=-ry;dy<=ry;dy++){ const hw=Math.floor(rx*Math.sqrt(Math.max(0,1-(dy/ry)*(dy/ry)))+0.35); ctx.fillRect(cx-hw,cy+dy,hw*2+1,1);} }
+function line(x0,y0,x1,y1,c){ x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1); ctx.fillStyle=c; const dx=Math.abs(x1-x0), dy=-Math.abs(y1-y0), sx=x0<x1?1:-1, sy=y0<y1?1:-1; let e=dx+dy, n=0; while(n++<600){ ctx.fillRect(x0,y0,1,1); if(x0===x1&&y0===y1) break; const e2=2*e; if(e2>=dy){e+=dy;x0+=sx;} if(e2<=dx){e+=dx;y0+=sy;} } }
+function ring(cx,cy,r,c){ for(let a=0;a<Math.PI*2;a+=0.12) R(cx+Math.cos(a)*r,cy+Math.sin(a)*r,1,1,c); }
+function txt(s,x,y,c,size=8,align='left',font=FONT_PX){ ctx.font=`${font===FONT_HUD?'':'600 '}${size}px ${font}`; ctx.textAlign=align; ctx.textBaseline='top'; ctx.fillStyle='rgba(0,0,0,.75)'; ctx.fillText(s,x+1,y+1); ctx.fillStyle=c; ctx.fillText(s,x,y); }
+function star(x,y,c){ R(x+2,y,1,1,c); R(x+1,y+1,3,1,c); R(x,y+2,5,1,c); R(x+1,y+3,3,1,c); R(x+1,y+4,1,1,c); R(x+3,y+4,1,1,c); }
+function diamond(x,y,c){ R(x,y-2,1,1,c); R(x-1,y-1,3,1,c); R(x-2,y,5,1,c); R(x-1,y+1,3,1,c); R(x,y+2,1,1,c); }
+function pix(rows,x,y,map){ rows.forEach((row,j)=>{ for(let i=0;i<row.length;i++){ const c=map[row[i]]; if(c) R(x+i,y+j,1,1,c); } }); }
+
+/* ---------- Héros : Globi le lymphocyte ---------- */
+function drawY(x,y,c){ line(x,y+6,x,y+2,c); line(x,y+2,x-3,y-2,c); line(x,y+2,x+3,y-2,c); R(x-4,y-3,2,2,c); R(x+3,y-3,2,2,c); }
+function drawHero(x,y,t,f){
+  y+=Math.round(Math.sin(t*4)*1.5);
+  const OL=f||'#24305e', BODY=f||'#dfe6fb', HI=f||'#ffffff', NU=f||'#7d4fc0', NU2=f||'#a37be3', EYE=f||'#14142b', CH=f||'#f59ab0';
+  disc(x,y,12,OL); disc(x,y,11,BODY); disc(x-2,y-2,8,HI);
+  disc(x-3,y+6,4,NU); disc(x+3,y+6,4,NU); disc(x-3,y+5,2,NU2); disc(x+3,y+5,2,NU2);
+  const blink=(Math.floor(t*10)%40)===0;
+  if(blink){ R(x-6,y-2,3,1,EYE); R(x+2,y-2,3,1,EYE); }
+  else { R(x-6,y-5,3,4,EYE); R(x+2,y-5,3,4,EYE); R(x-5,y-5,1,1,HI); R(x+3,y-5,1,1,HI); }
+  R(x-9,y-1,2,1,CH); R(x+7,y-1,2,1,CH);
+  R(x-2,y+1,4,1,EYE); R(x-3,y,1,1,EYE); R(x+2,y,1,1,EYE);
+  drawY(x+15,y-3,f||'#f8c537');
+}
+/* Globi en mode plateforme : boîte 14×20, (sx,sy) = coin haut-gauche à l’écran */
+function drawGlobi(sx,sy,t,p,flash){
+  const cx=Math.round(sx+7), cy=Math.round(sy+9), face=p.face||1;
+  const OL=flash||'#24305e', BODY=flash||'#e4eafc', HI=flash||'#ffffff', NU=flash||'#7d4fc0', EYE=flash||'#14142b', FOOT=flash||'#3a2f6e', GOLD=flash||'#f8c537';
+  const run=p.onGround && Math.abs(p.vx)>12, ph=run?Math.floor(t*12)%2:0;
+  if(!p.onGround){ R(cx-7,sy+14,5,4,FOOT); R(cx+2,sy+15,5,4,FOOT); }
+  else { R(cx-7+(ph?2:0),sy+16,6,4,FOOT); R(cx+1-(ph?2:0),sy+16,6,4,FOOT); }
+  disc(cx,cy,9,OL); disc(cx,cy,8,BODY); disc(cx-2,cy-2,5,HI);
+  disc(cx-2,cy+4,2,NU); disc(cx+2,cy+4,2,NU);
+  const ex=cx+face*2;
+  R(ex-4,cy-4,2,4,EYE); R(ex+2,cy-4,2,4,EYE); R(ex-4,cy-4,1,1,HI); R(ex+2,cy-4,1,1,HI);
+  R(cx-7,cy,2,1,flash||'#f59ab0'); R(cx+5,cy,2,1,flash||'#f59ab0');
+  line(cx,cy-9,cx,cy-11,GOLD); line(cx,cy-11,cx-2,cy-13,GOLD); line(cx,cy-11,cx+2,cy-13,GOLD);
+}
+function miniGlobi(x,y,t){ y+=Math.round(Math.sin(t*6)*1.5); disc(x,y,5,'#24305e'); disc(x,y,4,'#eef2ff'); R(x-2,y-2,1,2,'#14142b'); R(x+1,y-2,1,2,'#14142b'); R(x-1,y+3,3,1,'#7d4fc0'); }
+
+/* ---------- Gardiens (boss) ---------- */
+function eyes(x,y,g,p){ for(const s of [-1,1]){ const ex=x+s*g; R(ex-2,y-2,5,5,p.o); R(ex-1,y-1,3,3,'#ffffff'); R(ex-1,y,2,2,'#14142b'); line(ex+3*s,y-5,ex-2*s,y-3,p.o); line(ex+3*s,y-4,ex-2*s,y-2,p.o); } }
+function teeth(x,y,w,p){ R(x,y,w,4,p.o); for(let i=1;i<w-1;i+=2) R(x+i,y+1,1,1,'#ffffff'); R(x+1,y+2,w-2,1,'#5a0d1a'); }
+const ENEMY={
+  bacille(x,y,t,p){
+    for(let k=-1;k<=1;k++) for(let i=0;i<13;i++) R(x+20+i, y+k*7+Math.sin(t*9+i*0.8+k*2)*2.5,1,1,p.o);
+    disc(x-10,y,11,p.o); disc(x+10,y,11,p.o); R(x-10,y-11,20,23,p.o);
+    disc(x-10,y,10,p.a); disc(x+10,y,10,p.a); R(x-10,y-10,20,21,p.a);
+    R(x-14,y-8,22,2,p.h); R(x-17,y-5,2,4,p.h);
+    disc(x+9,y+5,2,p.b); disc(x+15,y-3,2,p.b); disc(x-15,y+5,1,p.b); disc(x+2,y+7,1,p.b);
+    eyes(x-7,y-2,5,p); teeth(x-13,y+5,10,p);
+  },
+  nuage(x,y,t,p){
+    const P=[[-13,3,10],[0,-5,13],[13,2,10],[6,9,9],[-6,9,9]]; const w=Math.sin(t*2);
+    for(let i=0;i<4;i++){ const ph=(t*0.6+i*0.25)%1; disc(x+18+i*3, y-10-ph*20, 2+Math.round(ph*2), p.b); }
+    P.forEach(([dx,dy,r])=>disc(x+dx,y+dy+Math.round(w*(dx>0?1:-1)),r+1,p.o));
+    P.forEach(([dx,dy,r])=>disc(x+dx,y+dy+Math.round(w*(dx>0?1:-1)),r,p.a));
+    disc(x+7,y+12,4,p.b); disc(x-3,y-10,5,p.h); disc(x-15,y,3,p.h);
+    eyes(x-6,y-1,6,p); R(x-9,y+6,6,5,p.o); R(x-8,y+7,4,3,'#3a0d14');
+  },
+  caillot(x,y,t,p){
+    const C=[[-11,-6,8],[6,-9,8],[13,5,8],[-3,7,9],[-16,8,6],[1,-1,8]];
+    const s=Math.round(Math.sin(t*2)*2);
+    line(x-26,y-14+s,x+24,y+16-s,p.h); line(x-24,y+14,x+26,y-12,p.h); line(x-28,y+2-s,x+28,y-2+s,p.h);
+    C.forEach(([dx,dy,r])=>disc(x+dx,y+dy,r+1,p.o));
+    C.forEach(([dx,dy,r])=>{ disc(x+dx,y+dy,r,p.a); disc(x+dx+1,y+dy+1,Math.max(2,r-4),p.b); });
+    for(let i=0;i<5;i++){ const a=t*1.5+i*1.256; R(x+Math.cos(a)*27-1,y+Math.sin(a)*17-1,3,2,'#f2c94c'); }
+    eyes(x+1,y-2,5,p); teeth(x-5,y+5,10,p);
+  },
+  goutte(x,y,t,p){
+    const w=Math.round(Math.sin(t*3)*1.5), r=15+w;
+    [[p.o,1],[p.a,0]].forEach(([c,g])=>{ disc(x,y+5,r+g,c); for(let i=0;i<=20;i++){ const hw=Math.round(i*0.62)+g; R(x-hw,y-24+i-g,2*hw+1,1,c);} });
+    disc(x+6,y+10,6,p.b); R(x-10,y-1,2,7,p.h); R(x-8,y-6,2,3,p.h);
+    eyes(x-3,y+2,6,p); for(let i=0;i<9;i++) R(x-7+i,y+11+(i%2),1,1,p.o);
+  },
+  rocher(x,y,t,p){
+    const hwAt=dy=>Math.max(0,Math.round(Math.sqrt(Math.max(0,1-(dy/17)*(dy/17)))*20+(((dy*7+3)%5+5)%5)-2));
+    for(let dy=-17;dy<=17;dy++){ const hw=hwAt(dy); R(x-hw-1,y+dy-1,2*hw+3,3,p.o); }
+    for(let dy=-16;dy<=16;dy++){ const hw=hwAt(dy); R(x-hw,y+dy,2*hw+1,1,p.a); if(dy>2) R(x+3,y+dy,hw-3,1,p.b); }
+    const sp=Math.sin(t*4)>0;
+    diamond(x-8,y-15,p.h); diamond(x+9,y-12,sp?'#ffffff':p.h); diamond(x+17,y+4,p.h); diamond(x-17,y+6,sp?p.h:'#ffffff');
+    eyes(x-4,y-3,6,p); teeth(x-9,y+5,10,p);
+  },
+  os(x,y,t,p){
+    for(let i=0;i<3;i++){ const a=t*2+i*2.09; R(x+Math.cos(a)*32-1,y+Math.sin(a)*20,3,2,p.b); }
+    const E=[[-19,-5],[-19,5],[19,-5],[19,5]];
+    E.forEach(([dx,dy])=>disc(x+dx,y+dy,6,p.o)); R(x-19,y-6,38,13,p.o);
+    E.forEach(([dx,dy])=>disc(x+dx,y+dy,5,p.a)); R(x-19,y-5,38,11,p.a);
+    R(x-17,y+3,34,2,p.b); R(x-15,y-4,30,1,p.h); disc(x-21,y-7,1,p.h);
+    line(x+6,y-5,x+9,y-1,p.o); line(x+9,y-1,x+5,y+2,p.o); line(x+5,y+2,x+8,y+5,p.o);
+    eyes(x-7,y-1,5,p); R(x-10,y+3,7,2,p.o);
+  },
+  neurone(x,y,t,p){
+    line(x+8,y+4,x+34,y+16,p.o); line(x+8,y+5,x+34,y+17,p.o);
+    for(let i=0;i<3;i++) ell(x+15+i*7,y+8+i*3,3,2,p.b);
+    line(x+34,y+16,x+38,y+11,p.o); line(x+34,y+16,x+40,y+18,p.o); line(x+34,y+16,x+36,y+22,p.o);
+    [3.4,2.6,4.1,4.8,1.9,5.5,1.2].forEach((a,k)=>{
+      const w=Math.sin(t*2+k)*0.08, ex=x+Math.cos(a+w)*21, ey=y+Math.sin(a+w)*18;
+      line(x,y,ex,ey,p.o); line(x+1,y,ex+1,ey,p.o);
+      const bx=x+Math.cos(a+w)*14, by=y+Math.sin(a+w)*12;
+      line(bx,by,bx+Math.cos(a+0.7)*7,by+Math.sin(a+0.7)*7,p.o); line(bx,by,bx+Math.cos(a-0.7)*7,by+Math.sin(a-0.7)*7,p.o);
+      const ph=(t*1.2+k*0.37)%1; R(ex+(x-ex)*ph-1,ey+(y-ey)*ph-1,2,2,p.h);
+    });
+    disc(x,y,12,p.o); disc(x,y,11,p.a); disc(x+4,y+4,4,p.b); R(x-7,y-8,3,2,'#c9a9ff');
+    eyes(x-3,y-2,5,p); teeth(x-7,y+4,9,p);
+  },
+  virus(x,y,t,p){
+    const R0=13;
+    for(let k=0;k<10;k++){ const a=t*0.7+k*Math.PI/5, c=Math.cos(a), s=Math.sin(a);
+      line(x+c*R0,y+s*R0,x+c*(R0+7),y+s*(R0+7),p.o); line(x+c*R0+1,y+s*R0,x+c*(R0+7)+1,y+s*(R0+7),p.o);
+      disc(x+c*(R0+7),y+s*(R0+7),2,p.o); disc(x+c*(R0+7),y+s*(R0+7),1,p.h); }
+    disc(x,y,R0+1,p.o); disc(x,y,R0,p.a);
+    for(let k=0;k<6;k++){ const a=k*1.047+0.3; disc(x+Math.cos(a)*8,y+Math.sin(a)*8,2,p.b); }
+    R(x-9,y-8,3,2,p.h);
+    eyes(x-3,y-2,5,p); teeth(x-7,y+4,10,p);
+  },
+  supreme(x,y,t,p){
+    const hue=(t*50)%360;
+    for(let k=0;k<20;k++){ const a=-t*0.5+k*Math.PI/10, r=36+Math.sin(t*3+k)*2; R(x+Math.cos(a)*r,y+Math.sin(a)*r*0.9,2,2,`hsl(${(hue+k*18)%360},90%,62%)`); }
+    for(let k=0;k<14;k++){ const a=t*0.5+k*Math.PI*2/14, c=Math.cos(a), s=Math.sin(a), L=21+9+Math.round(Math.sin(t*4+k)*1.5);
+      line(x+c*21,y+s*21,x+c*L,y+s*L,p.o); line(x+c*21+1,y+s*21,x+c*L+1,y+s*L,p.o);
+      disc(x+c*L,y+s*L,3,p.o); disc(x+c*L,y+s*L,2,`hsl(${(hue+k*25)%360},90%,62%)`); }
+    disc(x,y,22,p.o); disc(x,y,21,p.a);
+    for(let k=0;k<26;k++){ const a=t*1.2+k*0.2416; R(x+Math.cos(a)*15,y+Math.sin(a)*15,2,2,k%2?p.b:'#7a2a8a'); }
+    disc(x,y-3,7,p.o); disc(x,y-3,6,'#ffffff'); disc(x-1,y-3,3,'#d0103a'); disc(x-1,y-3,1,'#14142b');
+    for(const s of [-1,1]){ R(x+s*12-2,y-11,5,4,p.o); R(x+s*12-1,y-10,3,2,'#ffffff'); R(x+s*12-1,y-10,1,2,'#14142b'); }
+    R(x-10,y+7,20,6,p.o); for(let i=0;i<9;i++) R(x-9+i*2,y+8,1,2,'#ffffff'); R(x-9,y+11,18,1,'#5a0d1a');
+  }
+};
+const WHITE={a:'#ffffff',b:'#ffffff',o:'#ffffff',h:'#ffffff'};
+
+/* ---------- Petits pathogènes qui marchent (14×12) ---------- */
+function drawMinion(e,sx,sy,t,pal,type){
+  sx=Math.round(sx); sy=Math.round(sy);
+  if(e.squash>0){ R(sx,sy+8,14,4,pal.o); R(sx+1,sy+9,12,2,pal.a); R(sx+3,sy+9,2,1,'#fff'); R(sx+9,sy+9,2,1,'#fff'); return; }
+  const cx=sx+7, cy=sy+5, f=Math.floor(t*8+e.x*0.01)%2, dir=e.vx<0?-1:1;
+  if(type==='virus'||type==='supreme'){ for(let k=0;k<7;k++){ const a=k*0.9+t*2; line(cx+Math.cos(a)*5,cy+Math.sin(a)*5,cx+Math.cos(a)*8,cy+Math.sin(a)*8,pal.o); } }
+  if(type==='bacille'){ for(let i=0;i<5;i++) R(cx-dir*(8+i),cy+Math.sin(t*12+i)*1.5,1,1,pal.o); }
+  R(sx+2+f,sy+10,4,2,pal.o); R(sx+8-f,sy+10,4,2,pal.o);
+  if(type==='bacille'){ ell(cx,cy,8,6,pal.o); ell(cx,cy,7,5,pal.a); }
+  else if(type==='rocher'){ R(cx-7,cy-5,15,11,pal.o); R(cx-6,cy-4,13,9,pal.a); R(cx-6,cy-6,5,2,pal.o); R(cx+2,cy-6,4,1,pal.o); }
+  else { disc(cx,cy,6,pal.o); disc(cx,cy,5,pal.a); }
+  R(cx-3,cy-4,2,1,pal.h);
+  const ox=dir>0?1:0;
+  R(cx-3,cy-1,2,3,'#ffffff'); R(cx+1,cy-1,2,3,'#ffffff'); R(cx-3+ox,cy,1,2,'#14142b'); R(cx+1+ox,cy,1,2,'#14142b');
+  R(cx-4,cy-2,3,1,pal.o); R(cx+1,cy-2,3,1,pal.o);
+}
+
+/* ---------- Jetons d’ATP, drapeaux, insigne ---------- */
+function drawATP(x,y,t){
+  const w=Math.max(1,Math.round(Math.abs(Math.cos(t*4+x*0.05))*4));
+  ell(x,y,w,5,'#8a5a00'); if(w>1) ell(x,y,w-1,4,'#ffd23f'); R(x-Math.max(0,w-2),y-3,1,2,'#fff6c0');
+}
+function drawCheckpoint(cp,sx,sy,t){
+  R(sx,sy-34,2,34,'#f2f0ff'); R(sx+2,sy-34,1,34,'#9a98b8'); disc(sx+1,sy-35,2,'#f8c537');
+  const wav=Math.round(Math.sin(t*6));
+  const c=cp.on?'#3fbf6f':'#9aa0b8', d=cp.on?'#1b6a40':'#5a6080';
+  R(sx+3,sy-32+wav,12,8,d); R(sx+3,sy-32+wav,11,7,c);
+  pix(['.X.X.','XXXXX','.XXX.','..X..'],sx+6,sy-31+wav,{X:'#ffffff'});
+}
+function drawMedal(x,y,t,z){
+  y+=Math.round(Math.sin(t*3)*3);
+  for(let k=0;k<6;k++){ const a=t*2+k*1.047; R(x+Math.cos(a)*14,y+Math.sin(a)*14,2,2,'#fff6c0'); }
+  disc(x,y,9,'#7a5a10'); disc(x,y,8,'#f8c537'); disc(x,y,6,z.color==='#ffffff'?'#ff4fa3':z.color); star(x-2,y-2,'#ffffff');
+}
+
+/* ---------- Particules de décor ---------- */
+let parts=[];
+function newPart(type,anywhere){
+  const p={type, x:Math.random()*W, y:Math.random()*H, ph:Math.random()*6.28, s:Math.random()};
+  if(type==='mix') p.type=['food','bubble','rbc','lymph','drop','spark','cell'][Math.floor(Math.random()*7)];
+  switch(p.type){
+    case 'food': p.vx=-4-p.s*6; p.vy=(p.s-.5)*2; p.c=['#c98b3a','#7cb342','#e0c070'][Math.floor(p.s*3)]; break;
+    case 'bubble': p.vx=0; p.vy=-5-p.s*8; break;
+    case 'rbc': p.vx=20+p.s*35; p.vy=0; break;
+    case 'lymph': p.vx=(p.s-.5)*6; p.vy=(Math.random()-.5)*6; break;
+    case 'drop': p.vx=0; p.vy=14+p.s*12; break;
+    case 'fiber': p.vx=-8-p.s*8; p.vy=0; break;
+    case 'spark': p.vx=0; p.vy=0; p.life=Math.random(); break;
+    case 'cell': p.vx=(p.s-.5)*5; p.vy=-2-p.s*3; break;
+    case 'mapcell': p.vx=(p.s-.5)*4; p.vy=(Math.random()-.5)*3; break;
+  }
+  if(!anywhere){ if(p.vx>0) p.x=-8; else if(p.vx<0) p.x=W+8; if(p.vy<0) p.y=H+8; else if(p.vy>0&&p.vx===0) p.y=-8; }
+  return p;
+}
+function initParts(type,n){ parts=Array.from({length:n},()=>newPart(type,true)); }
+function drawParts(dt,t){
+  for(const p of parts){
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    if(p.x<-12||p.x>W+12||p.y<-12||p.y>H+12){ Object.assign(p,newPart(p.type,false)); }
+    switch(p.type){
+      case 'food': R(p.x,p.y,3,3,p.c); break;
+      case 'bubble': ring(p.x+Math.sin(t*2+p.ph)*2,p.y,2+Math.round(p.s*1.5),'#ffffff'); break;
+      case 'rbc': disc(p.x,p.y,3,'#c62a40'); R(p.x-1,p.y,3,1,'#8d1428'); break;
+      case 'lymph': disc(p.x,p.y,2,'#2f9a78'); break;
+      case 'drop': R(p.x,p.y,2,3,'#c49a20'); break;
+      case 'fiber': R(p.x,p.y,14,1,'#d0756a'); R(p.x+3,p.y+2,10,1,'#d0756a'); break;
+      case 'spark': { p.life-=dt*2; if(p.life<0){ p.life=1; p.x=Math.random()*W; p.y=Math.random()*H*0.6; } if(p.life>0.5){ line(p.x,p.y,p.x+3,p.y+3,'#ffe66b'); line(p.x+3,p.y+3,p.x+1,p.y+5,'#ffe66b'); line(p.x+1,p.y+5,p.x+4,p.y+8,'#ffe66b'); } break; }
+      case 'cell': ring(p.x,p.y,3,'#d84d8f'); R(p.x,p.y,1,1,'#d84d8f'); break;
+      case 'mapcell': ring(p.x,p.y,3+Math.round(p.s*2),'#9cc4ff'); break;
+    }
+  }
+}
+
+/* =========================================================
+   NIVEAUX — génération, tuiles, décor
+   ========================================================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+function buildLevel(idx,opt={}){
+  const z=ALL[idx], rnd=mulberry32(4242+idx*7919+(opt.seed||0)), ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+  const nQ=opt.demo?4:(idx===8?6:5), MAIN=opt.demo?180:24+nQ*19, AR=20, LW=MAIN+AR;
+  const h=new Array(LW).fill(10), busy=new Array(LW).fill(false);
+  const stairs=[], pits=[];
+  let x=0, cur=10;
+  const flat=n=>{ for(let i=0;i<n&&x<MAIN;i++) h[x++]=cur; };
+  const step=()=>{ cur=Math.max(8,Math.min(10,cur+(rnd()<0.5?-1:1))); };
+  flat(12);
+  while(x<MAIN-12){
+    const r=rnd();
+    if(r<0.24 && !opt.demo){ const n=ri(2,3), s=x; for(let i=0;i<n;i++) h[x++]=99; pits.push({x:s,n,h:h[s-1]}); if(rnd()<0.5) step(); flat(ri(4,7)); }
+    else if(r<0.44){ step(); flat(ri(5,9)); }
+    else if(r<0.58 && !opt.demo){ const s=x; flat(9); stairs.push({x:s+1,h:h[s+1]}); }
+    else flat(ri(6,10));
+  }
+  while(x<MAIN) h[x++]=cur;
+  for(let i=MAIN;i<LW;i++) h[i]=10;
+  const grid=Array.from({length:ROWS},()=>new Array(LW).fill('.'));
+  for(let c=0;c<LW;c++){ if(h[c]>=ROWS) continue; grid[h[c]][c]='G'; for(let r=h[c]+1;r<ROWS;r++) grid[r][c]='D'; }
+  stairs.forEach(s=>{ [1,2,3,3,2,1].forEach((k,i)=>{ const c=s.x+i; for(let j=1;j<=k;j++) grid[s.h-j][c]='P'; busy[c]=true; }); busy[s.x-1]=true; busy[s.x+6]=true; });
+  pits.forEach(p=>{ for(let i=-1;i<=p.n;i++) busy[p.x+i]=true; });
+  const okCol=c=>c>3&&c<MAIN-3&&h[c]<99&&h[c-1]===h[c]&&h[c+1]===h[c]&&!busy[c]&&!busy[c-1]&&!busy[c+1];
+  const atps=[], enemies=[], cps=[];
+  // blocs du savoir
+  let placed=0;
+  for(let k=0;k<nQ;k++){
+    const tgt=Math.round(14+(k+0.5)*(MAIN-22)/nQ);
+    for(let d=0;d<16;d++){
+      const c=tgt+(d%2?-1:1)*Math.ceil(d/2); if(!okCol(c)) continue;
+      const r=h[c]-4; grid[r][c]='S'; placed++;
+      if(rnd()<0.65){ grid[r][c-1]='B'; grid[r][c+1]='B'; }
+      if(rnd()<0.5) atps.push({x:c*TS+8,y:(r-1)*TS+8});
+      for(let i=-2;i<=2;i++) busy[c+i]=true;
+      break;
+    }
+  }
+  // plateformes de briques avec ATP
+  for(let k=0;k<(opt.demo?6:3);k++){
+    for(let tries=0;tries<20;tries++){
+      const c=ri(18,MAIN-10); if(!(okCol(c)&&okCol(c+2))) continue;
+      for(let i=0;i<3;i++){ grid[h[c]-4][c+i]='B'; atps.push({x:(c+i)*TS+8,y:(h[c]-5)*TS+8}); busy[c+i]=true; }
+      busy[c-1]=busy[c+3]=true; break;
+    }
+  }
+  pits.forEach(p=>{ for(let i=0;i<p.n;i++) atps.push({x:(p.x+i)*TS+8,y:(p.h-3)*TS+8}); });
+  for(let k=0;k<4;k++){ const c=ri(14,MAIN-8); if(okCol(c)&&okCol(c+2)) for(let i=0;i<3;i++) atps.push({x:(c+i)*TS+8,y:(h[c]-1)*TS+8}); }
+  // petits pathogènes
+  if(!opt.demo){
+    const n=idx===8?8:6;
+    for(let tries=0;tries<120&&enemies.length<n;tries++){
+      const c=ri(20,MAIN-8);
+      if(h[c]>=99||grid[h[c]-1][c]!=='.'||h[c-1]!==h[c]) continue;
+      if(enemies.some(e=>Math.abs(e.x/TS-c)<6)) continue;
+      enemies.push({x:c*TS+1,y:h[c]*TS-12,w:14,h:12,vx:-22,vy:0,alive:true,squash:0,on:false});
+    }
+  }
+  // point de contrôle
+  for(let d=0;d<30;d++){ const c=Math.floor(MAIN/2)+d; if(h[c]<99&&h[c-1]===h[c]&&grid[h[c]-1][c]==='.'&&grid[h[c]-1][c+1]==='.'){ cps.push({x:c*TS+4,y:h[c]*TS,on:false}); break; } }
+  for(let r=0;r<10;r++) grid[r][LW-1]='P';
+  const sup=z.ennemi.type==='supreme';
+  const p={x:2*TS+1,y:h[2]*TS-20,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,inv:0,jumping:false};
+  const pool = idx===8 ? shuffle(FINAL.q.concat(SYS.map(s=>s.q[Math.floor(Math.random()*s.q.length)]))) : shuffle(z.q);
+  return {idx,z,th:THEMES[z.id],grid,h,W:LW,MAIN,arenaX:MAIN*TS,enemies,atps,cps,nQ:placed,qDone:0,atp:0,
+    p,respawn:{x:p.x,y:p.y},cam:0,mode:'prep',bumps:{},fx:[],pool,pi:0,streak:0,n:0,medal:null,
+    boss:{hp:z.hp||5,max:z.hp||5,started:false,dead:false,dying:0,x:(MAIN+15)*TS,y:10*TS-(sup?42:24)}};
+}
+
+function drawTile(k,sx,sy,th,c,r,t){
+  switch(k){
+    case 'G': R(sx,sy,16,16,th.mid); R(sx,sy,16,4,th.top); R(sx+((c*5)%11),sy+4,4,1,th.top); R(sx+((c*7+3)%12),sy+9,2,2,th.dark); R(sx+((c*3+9)%13),sy+13,2,1,th.dark); break;
+    case 'D': { R(sx,sy,16,16,th.mid); const k2=(c*7+r*13)%5; R(sx+2+k2*2,sy+3+k2,2,2,th.dark); R(sx+12-k2,sy+11,2,2,th.dark); break; }
+    case 'B': R(sx,sy,16,16,th.brick); R(sx,sy,16,1,th.top); R(sx,sy+7,16,1,th.mortar); R(sx,sy+15,16,1,th.mortar); R(sx+7,sy,1,7,th.mortar); R(sx+15,sy,1,7,th.mortar); R(sx+3,sy+8,1,7,th.mortar); R(sx+11,sy+8,1,7,th.mortar); break;
+    case 'P': R(sx,sy,16,16,th.dark); R(sx+1,sy+1,14,14,th.hard); R(sx+1,sy+1,14,2,th.top); R(sx+1,sy+1,2,14,th.top); R(sx+5,sy+5,6,6,th.dark); R(sx+6,sy+6,4,4,th.hard); break;
+    case 'S': {
+      R(sx,sy,16,16,'#0d2a3a'); R(sx+1,sy+1,14,14,'#2ec4b6'); R(sx+1,sy+1,14,2,'#9ff7ec'); R(sx+1,sy+1,2,14,'#9ff7ec'); R(sx+1,sy+13,14,2,'#168a80'); R(sx+13,sy+1,2,14,'#168a80');
+      [[3,3],[12,3],[3,12],[12,12]].forEach(([a,b])=>R(sx+a,sy+b,1,1,'#0d2a3a'));
+      const glow=Math.floor(t*3)%3===0?'#fff6c0':'#ffe066';
+      pix(['.XXXX.','XWWWWX','XWWWWX','XWWWWX','.XWWX.','..XX..','.oooo.','.oooo.','..oo..'],sx+5,sy+3,{X:'#6a4200',W:glow,o:'#d6dde6'});
+      break; }
+    case 'U': R(sx,sy,16,16,'#3a2a20'); R(sx+1,sy+1,14,14,'#8a7060'); R(sx+1,sy+1,14,1,'#a88c7a'); [[3,3],[12,3],[3,12],[12,12]].forEach(([a,b])=>R(sx+a,sy+b,1,1,'#3a2a20')); break;
+  }
+}
+function drawCloud(x,y){ disc(x+4,y+8,7,'#ffffff'); disc(x+14,y+3,9,'#ffffff'); disc(x+25,y+7,7,'#ffffff'); R(x+4,y+8,22,8,'#ffffff'); R(x+2,y+14,28,2,'#e2ecff'); }
+function drawSky(th,cam,t){
+  R(0,0,W,H,th.sky[0]); R(0,92,W,H-92,th.sky[1]);
+  for(let x=0;x<W;x+=2){ R(x,88+((x>>1)%2)*2,1,1,th.sky[1]); }
+  const night=th.deco==='neurons'||th.deco==='mix';
+  if(night){ for(let k=0;k<40;k++){ const sx=((k*53-cam*0.1)%W+W)%W, sy=14+(k*29)%80; if((Math.floor(t*2)+k)%5) R(sx,sy,1,1,k%3?'#ffffff':'#ffe66b'); } }
+  else { const off=cam*0.2, i0=Math.floor(off/150)-1; for(let i=i0;i<i0+4;i++){ const s=((i%3)+3)%3; drawCloud(i*150-off+30,18+s*12); } }
+  const P=110, off=cam*0.4, i0=Math.floor(off/P)-1, F=th.far, F2=th.far2;
+  if(th.deco==='vessels'){ for(let x=0;x<W;x++){ R(x,60+Math.sin((x+off)*0.035)*8,1,10,F); R(x,102+Math.sin((x+off)*0.03+2)*7,1,14,F2); } }
+  for(let i=i0;i<i0+5;i++){
+    const X=i*P-off, s=((i%7)+7)%7;
+    switch(th.deco){
+      case 'villi': [10,40,72].forEach((dx,j)=>{ const hh=40+((s+j*3)%4)*10, c=j%2?F2:F; R(X+dx-6,150-hh,13,hh,c); disc(X+dx,150-hh,6,c); R(X+dx-3,152-hh,2,hh-6,th.sky[0]); }); break;
+      case 'alveoli': { const cx=X+50, cy=96+(s%3)*6; line(cx,cy+20,cx,150,F2); line(cx+1,cy+20,cx+1,150,F2); [[0,0],[-10,6],[10,6],[-5,14],[5,14],[0,22],[-14,16],[14,16]].forEach(([a,b])=>disc(cx+a,cy+b,7,F2)); [[0,0],[-10,6],[10,6],[-5,14],[5,14],[0,22]].forEach(([a,b])=>disc(cx+a-1,cy+b-1,5,F)); break; }
+      case 'nodes': { const cx=X+50, cy=104+(s%3)*8; R(X,cy+2,P,2,F2); ell(cx,cy,15,10,F2); ell(cx,cy,12,8,F); ell(cx+3,cy-3,4,3,th.sky[0]); break; }
+      case 'drops': { const cx=X+50, by=150; disc(cx,by-16,16,F); for(let k=0;k<22;k++){ const hw=Math.round(k*0.7); R(cx-hw,by-52+k,2*hw+1,1,F); } R(cx-9,by-26,3,8,th.sky[0]); break; }
+      case 'bones': { const cx=X+50; R(cx-4,72,9,80,F2); disc(cx-5,72,6,F2); disc(cx+5,72,6,F2); R(cx-3,72,7,80,F); disc(cx-5,72,5,F); disc(cx+5,72,5,F); break; }
+      case 'neurons': { const cx=X+50, cy=96+(s%3)*10; [0.3,1.2,2.2,3.3,4.4,5.4].forEach(a=>{ line(cx,cy,cx+Math.cos(a+s)*24,cy+Math.sin(a+s)*20,F); }); line(cx,cy,cx+40,cy+46,F2); disc(cx,cy,7,F); disc(cx,cy,4,F2); break; }
+      case 'cells': { const cx=X+50, cy=104+(s%3)*8; disc(cx,cy,18,F); disc(cx,cy,15,F2); disc(cx+4,cy-4,5,F); break; }
+      case 'mix': { const cx=X+50, cy=100+(s%3)*8; ring(cx,cy,16,`hsl(${(t*40+i*60)%360},70%,45%)`); ring(cx,cy,10,`hsl(${(t*40+i*60+120)%360},70%,45%)`); break; }
+    }
+  }
+}
+function drawTiles(L,cam,now,t){
+  const c0=Math.max(0,Math.floor(cam/TS)), c1=Math.min(L.W-1,c0+21);
+  for(let c=c0;c<=c1;c++) for(let r=1;r<ROWS;r++){
+    const k=L.grid[r][c]; if(k==='.') continue;
+    let sx=c*TS-cam, sy=r*TS-VY;
+    const key=c+','+r, b=L.bumps[key];
+    if(b){ const p=(now-b)/220; if(p<1) sy-=Math.round(Math.sin(p*Math.PI)*5); else delete L.bumps[key]; }
+    drawTile(k,sx,sy,L.th,c,r,t);
+  }
+}
+
+/* =========================================================
+   ÉTAT DU JEU
+   ========================================================= */
+const SAVE_KEY='globi-odyssee-v1';
+function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,atp:0,atpBank:0}; }
+function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.level) return Object.assign(fresh(),s); }catch(e){} return null; }
+function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
+let G=loadSave()||fresh();
+const maxHearts=()=>3; // cœurs au départ de chaque niveau (on peut en gagner plus)
+const xpNeed=()=>30+G.level*20;
+let hearts=maxHearts();
+function isBeaten(i){ return i===8 ? G.finalWon : G.beaten.includes(ALL[i].id); }
+function isUnlocked(i){ if(i===8) return SYS.every(z=>G.beaten.includes(z.id)); return true; }
+function nextIdx(){ for(let i=0;i<9;i++) if(isUnlocked(i)&&!isBeaten(i)) return i; return 8; }
+function healPct(){ return G.finalWon?100:Math.round(G.beaten.length/9*100); }
+function addXP(n){ G.xp+=n; let up=false; while(G.xp>=xpNeed()){ G.xp-=xpNeed(); G.level++; up=true; } return up; }
+const chipColor=i=>i===8?'#ff4fa3':ALL[i].color;
+
+let scene='title', sel=0, LV=null, Q=null, DLG=null, shakeUntil=0, DEMO=null, demoCam=0;
+const mp={x:153,y:84};
+const keys={left:false,right:false,jump:false,run:false}; let jumpBuf=0;
+
+/* =========================================================
+   DOM / HUD
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const panel=$('#panel'), modal=$('#modal'), mbox=$('#mbox');
+function pixSVG(rows,map){ let r=''; rows.forEach((row,y)=>[...row].forEach((ch,x)=>{ if(map[ch]) r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${map[ch]}"/>`; })); return `<svg viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`; }
+const HEART=['.XX.XX.','XWXXXXX','XXXXXXX','.XXXXX.','..XXX..','...X...'];
+const HEART_ON=pixSVG(HEART,{X:'#e8455a',W:'#ffd0d6'}), HEART_OFF=pixSVG(HEART,{X:'#3e3963',W:'#3e3963'});
+const ORANGE=pixSVG(['..G..','.OOO.','OWOOO','OOOOO','.OOO.'],{G:'#3fbf6f',O:'#f28c28',W:'#ffd59a'});
+const MEDAL=pixSVG(['.YYY.','YYWYY','YWWWY','YYWYY','.YYY.'],{Y:'#f8c537',W:'#fff6d0'});
+function updateHUD(){
+  let h=''; const n=Math.max(hearts,maxHearts());
+  if(hearts>10) h=HEART_ON+`<span>×${hearts}</span>`; else for(let i=0;i<n;i++) h+=i<hearts?HEART_ON:HEART_OFF;
+  $('#hearts').innerHTML=h; $('#hearts').setAttribute('aria-label',`${hearts} cœurs`);
+  $('#lvl').textContent='NIV '+G.level;
+  $('#xpbar').style.width=Math.round(G.xp/xpNeed()*100)+'%';
+  $('#vit').innerHTML=ORANGE+'<span>VIT. C ×'+G.vit+'</span>';
+  $('#bdg').innerHTML=MEDAL+'<span>'+G.beaten.length+'/8</span>';
+}
+function shakeHearts(){ const h=$('#hearts'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake'); }
+function updateECard(){
+  if(!LV) return; const b=LV.boss;
+  const pct=Math.max(0,b.hp/b.max*100);
+  $('#ename').textContent=LV.z.ennemi.nom;
+  $('#ebar').style.width=pct+'%';
+  $('#ebarWrap').className='bar'+(pct<=25?' low':pct<=50?' mid':'');
+  $('#enum').textContent=Math.max(0,b.hp)+'/'+b.max;
+}
+function overlays(){
+  $('#logo').hidden=scene!=='title';
+  $('#tag').hidden=scene!=='prep';
+  $('#ecard').hidden=!(scene==='level' && LV && LV.boss.started && !LV.boss.dead);
+  $('#hud').hidden=(scene==='title'||scene==='intro');
+}
+function setPanel(html,focusSel){
+  panel.innerHTML=html;
+  if(focusSel===null){ if(document.activeElement && (document.activeElement===document.body || panel.contains(document.activeElement))) { try{ cv.focus({preventScroll:true}); }catch(e){} } return; }
+  const f=panel.querySelector(focusSel||'button:not(:disabled)');
+  if(f && modal.hidden) f.focus({preventScroll:true});
+}
+const ficheHTML=z=>`<ul class="fiche" style="--c:${z.color==='#ffffff'?'#ff4fa3':z.color}">${z.fiche.map(l=>`<li>${l}</li>`).join('')}</ul>`;
+const playing=()=>scene==='level' && LV && (LV.mode==='play'||LV.mode==='walk') && modal.hidden && !DLG;
+
+/* ---------- Dialogue (machine à écrire) ---------- */
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function dialog(lines,done,speaker){ DLG={lines,i:0,done,speaker,typing:false,timer:null}; showDlg(); }
+function showDlg(){
+  const d=DLG, line=d.lines[d.i];
+  setPanel(`${d.speaker?`<div class="speaker">${d.speaker}</div>`:''}<p class="say" id="say"></p><div class="row between"><span class="hint">${d.i+1} / ${d.lines.length} · bouton A pour continuer</span><button class="btn" data-act="dlgNext">${d.i<d.lines.length-1?'Suite ▶':'OK ▶'}</button></div>`);
+  const el=$('#say'); clearInterval(d.timer);
+  d.full=()=>{ clearInterval(d.timer); el.textContent=line; d.typing=false; };
+  if(reduce){ d.full(); return; }
+  let n=0; d.typing=true;
+  d.timer=setInterval(()=>{ n++; el.textContent=line.slice(0,n); if(n%3===0) A.sfx('blip'); if(n>=line.length) d.full(); },20);
+}
+
+/* =========================================================
+   SCÈNES
+   ========================================================= */
+function toTitle(){
+  scene='title'; LV=null; overlays(); A.play('title'); initParts('bubble',10);
+  const s=loadSave();
+  setPanel(`<p class="say">Le corps de Max est envahi par des pathogènes. Un seul globule blanc peut le sauver : toi.</p>
+    <div class="row">${s?`<button class="btn" data-act="cont">Continuer ▶</button>`:''}<button class="btn ${s?'ghost':''}" data-act="newGame">Nouvelle partie ▶</button></div>
+    <p class="hint">${s?`Sauvegarde : niveau ${s.level} · ${s.beaten.length}/8 insignes${s.finalWon?' · corps guéri':''}`:'8 niveaux de plateforme, un par système du corps humain, et un boss final. Active le son!'}</p>`);
+}
+function confirmNew(){
+  setPanel(`<h2>Recommencer?</h2><p>Ta progression actuelle (niveau, insignes, vitamines, ATP) sera effacée.</p><div class="row"><button class="btn ghost" data-act="${scene==='title'?'title':'end'}">Annuler</button><button class="btn" data-act="startNew">Oui, recommencer</button></div>`,'[data-act=startNew]');
+}
+function startNew(){
+  G=fresh(); save(); hearts=maxHearts(); updateHUD();
+  scene='intro'; overlays();
+  dialog([
+    'Alerte! Le corps de Max, 15 ans, est envahi par des pathogènes.',
+    'Tu es Globi, un globule blanc d’élite. Tu cours, tu sautes et tu lances des anticorps en forme de Y.',
+    'Chaque système du corps est un niveau. Frappe les blocs du savoir par en dessous pour répondre aux questions.',
+    'Saute sur les petits pathogènes pour les écraser, ramasse l’ATP pour gagner des vitamines, et affronte le gardien au bout du niveau.',
+    'Gagne les 8 insignes pour atteindre le Pathogène Suprême. Max compte sur toi!'
+  ],()=>toMap(0),'Dre Cortex');
+}
+function toMap(i){
+  scene='map'; LV=null; Q=null; DLG=null; overlays(); A.play('map'); hearts=maxHearts(); updateHUD();
+  sel=(i!=null && isUnlocked(i))?i:nextIdx();
+  mp.x=ALL[sel].node[0]; mp.y=ALL[sel].node[1];
+  initParts('mapcell',14); showMapPanel();
+}
+function showMapPanel(){
+  const z=ALL[sel], won=isBeaten(sel);
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${sel===8?'Le Pathogène Suprême':z.nom}</h2></div>
+    <p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b> · ${won?'<span class="won">★ Insigne obtenu</span>':'À conquérir'}</p>
+    <p>${z.blurb}</p>
+    <div class="row between"><div class="row"><button class="btn" data-act="explore">${won?'Rejouer le niveau ▶':'Entrer dans le niveau ▶'}</button><button class="btn ghost" data-act="codex">Codex</button></div>
+    <div class="row"><button class="btn small ghost" data-act="prevZone" aria-label="Zone précédente">◀</button><button class="btn small ghost" data-act="nextZone" aria-label="Zone suivante">▶</button></div></div>`,'[data-act=explore]');
+}
+function moveSel(d){
+  const un=ALL.map((_,i)=>i).filter(isUnlocked);
+  let k=un.indexOf(sel); k=(k+d+un.length)%un.length;
+  if(un[k]!==sel){ sel=un[k]; A.sfx('select'); showMapPanel(); }
+}
+function prep(){
+  LV=buildLevel(sel); scene='prep'; overlays(); initParts(ALL[sel].part,12);
+  const z=ALL[sel];
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${sel===8?'Révision finale':z.nom}</h2></div>
+    ${ficheHTML(z)}
+    <p class="hint">Départ avec 3 cœurs · ${LV.nQ} blocs du savoir dans ce niveau · gardien : ${z.ennemi.nom} (${LV.boss.max} PV)</p>
+    <div class="row"><button class="btn ghost" data-act="map">◀ Carte</button><button class="btn" data-act="go">Commencer le niveau ▶</button></div>`,'[data-act=go]');
+}
+function startLevel(rebuild){
+  if(rebuild||!LV) LV=buildLevel(sel);
+  hearts=maxHearts(); updateHUD(); Q=null; DLG=null;
+  LV.mode='play'; scene='level'; overlays(); initParts(LV.z.part,12);
+  A.play('level');
+  for(const k in keys) keys[k]=false;
+  showPlayPanel();
+  try{ cv.focus({preventScroll:true}); }catch(e){}
+}
+function showPlayPanel(){
+  const L=LV, z=L.z, walk=L.mode==='walk';
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(L.idx)}"></span><h2>${L.idx===8?'Le cœur du corps':z.nom}</h2></div>
+    <p>${walk?`${z.ennemi.nom} est vaincu! Va chercher l’insigne qui flotte au bout du niveau.`:`Frappe les <b class="gold">blocs du savoir</b> (ceux avec une ampoule) par en dessous pour répondre aux questions. Saute sur les petits pathogènes pour les écraser. ${z.ennemi.nom} t’attend au bout du niveau.`}</p>
+    <p class="hint">Clavier : ← → bouger · Espace ou ↑ sauter · Maj courir. Écran tactile : croix, A pour sauter, B pour courir. Chaque bonne réponse : +1 cœur. Chaque niveau commence avec 3 cœurs. 30 ATP = 1 Vitamine C.</p>
+    <div class="row"><button class="btn small" data-act="vitamin" ${G.vit<1?'disabled':''}>Vitamine C ×${G.vit}</button><button class="btn small ghost" data-act="fiche">Fiche du savoir</button><button class="btn small ghost" data-act="quit">Carte</button></div>`,null);
+}
+
+/* ---------- Questions ---------- */
+function prepQ(q){ return {q:q.q,e:q.e,good:q.o[0],opts:shuffle(q.o)}; }
+function nextQ(){ const L=LV; if(L.pi>=L.pool.length){ L.pool=shuffle(L.pool); L.pi=0; } return prepQ(L.pool[L.pi++]); }
+function renderQuestion(){
+  const L=LV, q=Q.cur, boss=Q.mode==='boss';
+  const head=boss?`<span>Gardien · question ${L.n}</span>${L.streak>=2?`<span class="streak">Série ×${L.streak}${L.streak>=3?' · critique!':''}</span>`:''}`:`<span>Bloc du savoir ${L.qDone+1} / ${L.nQ}</span>`;
+  setPanel(`<div class="qhead">${head}<span>Touches 1 à 4</span></div>
+    <p class="question">${q.q}</p>
+    <div class="answers">${q.opts.map((o,i)=>`<button class="ans" data-act="answer" data-arg="${i}"><span class="k k${i}">${'ABCD'[i]}</span><span>${o}</span></button>`).join('')}</div>
+    <div class="row between brow"><button class="btn small" data-act="vitamin" ${G.vit<1?'disabled':''}>Vitamine C ×${G.vit}</button>${boss?'<button class="btn small ghost" data-act="quit">Abandonner</button>':''}</div>`,null);
+}
+function blockQuestion(c,r){
+  const L=LV; L.mode='question'; Q={mode:'block',c,r,cur:nextQ(),answered:false,t0:performance.now()};
+  for(const k in keys) keys[k]=false;
+  renderQuestion();
+}
+function bossIntro(){
+  const L=LV; L.boss.started=true; L.mode='bossintro'; L.p.vx=0;
+  L.enemies=L.enemies.filter(e=>e.x<L.arenaX-40);
+  for(const k in keys) keys[k]=false;
+  A.play(L.idx===8?'boss':'battle'); overlays(); updateECard();
+  dialog([L.idx===8?`Le ${L.z.ennemi.nom} se dresse devant toi!`:`${L.z.ennemi.nom} bloque la sortie!`, L.z.intro], ()=>bossQuestion());
+}
+function bossQuestion(){ const L=LV; L.mode='boss'; L.n++; Q={mode:'boss',cur:nextQ(),answered:false,t0:performance.now()}; renderQuestion(); }
+
+function addATP(n,wx,wy,quiet){
+  const L=LV; L.atp+=n; G.atp+=n; G.atpBank+=n; if(!quiet) A.sfx('atp');
+  while(G.atpBank>=30){ G.atpBank-=30; G.vit++; const now=performance.now(); L.fx.push({k:'pop',text:'+1 VITAMINE C',x:L.p.x+7,y:L.p.y-14,c:'#ffb347',t0:now,dur:1400,size:8}); setTimeout(()=>A.sfx('heal'),120); updateHUD(); if(L.mode==='play'||L.mode==='walk') showPlayPanel(); }
+  save();
+}
+function hurt(fromX){
+  const L=LV, p=L.p; if(p.inv>0) return;
+  hearts--; p.inv=1.6; p.vx=(p.x+7<fromX?-1:1)*110; p.vy=-170; p.jumping=false;
+  const now=performance.now(); L.fx.push({k:'hflash',t0:now,dur:450},{k:'pop',text:'-1',x:p.x+7,y:p.y-6,c:'#ff6b7e',t0:now,dur:900,size:10});
+  A.sfx('hurt'); shakeUntil=now+300; shakeHearts(); updateHUD();
+  if(hearts<=0) ko(); else if(L.mode==='play'||L.mode==='walk') showPlayPanel();
+}
+
+function answer(i){
+  const L=LV; if(!L||!Q||Q.answered||DLG) return; Q.answered=true;
+  const q=Q.cur, ok=q.opts[i]===q.good, now=performance.now(), nm=L.z.ennemi.nom, p=L.p;
+  G.total++;
+  panel.querySelectorAll('.ans').forEach((b,k)=>{ b.disabled=true; if(q.opts[k]===q.good) b.classList.add('good'); else if(k===i) b.classList.add('bad'); });
+  let msg='', btn='';
+  if(Q.mode==='block'){
+    L.qDone++;
+    const bx=Q.c*TS+8, by=Q.r*TS;
+    if(ok){
+      G.correct++; hearts++; const lv=addXP(10);
+      L.fx.push({k:'pop',text:'+1 COEUR',x:p.x+7,y:p.y-8,c:'#ff8fa3',t0:now+150,dur:1100,size:8});
+      for(let k=0;k<3;k++) L.fx.push({k:'tok',x:bx+(k-1)*9,y:by-4,t0:now+k*110,dur:600});
+      L.fx.push({k:'pop',text:'+10 XP',x:bx,y:by-22,c:'#ffffff',t0:now,dur:1100,size:8});
+      [0,110,220].forEach(d=>setTimeout(()=>A.sfx('atp'),d)); addATP(3,bx,by,true);
+      if(lv) setTimeout(()=>A.sfx('level'),500);
+      msg=`<div class="fb ok"><b>Bonne réponse!</b> +1 cœur · +10 XP · +3 ATP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
+    } else {
+      hearts--; L.fx.push({k:'hflash',t0:now,dur:450},{k:'pop',text:'-1',x:p.x+7,y:p.y-6,c:'#ff6b7e',t0:now,dur:900,size:10});
+      A.sfx('hurt'); shakeUntil=now+300; shakeHearts();
+      msg=`<div class="fb no"><b>Raté!</b> La bonne réponse : ${q.good}</div>`;
+    }
+    btn=hearts<=0?'Continuer ▶':'Reprendre la course ▶';
+  } else {
+    const b=L.boss, hx=p.x+7, hy=p.y+6;
+    if(ok){
+      L.streak++; G.correct++; hearts++;
+      L.fx.push({k:'pop',text:'+1 COEUR',x:hx,y:hy-16,c:'#ff8fa3',t0:now,dur:1100,size:8});
+      const crit=L.streak>=3, dmg=crit?2:1, gain=crit?15:10;
+      b.hp=Math.max(0,b.hp-dmg);
+      const n=crit?3:1; for(let k=0;k<n;k++) L.fx.push({k:'proj',x0:hx,y0:hy,x1:b.x,y1:b.y,t0:now+k*90,dur:380});
+      A.sfx('shoot');
+      const killed=b.hp<=0;
+      setTimeout(()=>{ if(LV!==L) return; const t=performance.now();
+        L.fx.push({k:'eflash',t0:t,dur:420},{k:'burst',x:b.x,y:b.y,t0:t,dur:320},{k:'pop',text:'-'+dmg,x:b.x,y:b.y-38,c:'#ffffff',t0:t,dur:900,size:10});
+        if(crit) L.fx.push({k:'pop',text:'CRITIQUE!',x:b.x,y:b.y-50,c:'#f8c537',t0:t,dur:900,size:8});
+        A.sfx(crit?'crit':'hit');
+        if(killed){ b.dying=t+300; setTimeout(()=>{ if(LV!==L) return; A.sfx('die'); L.fx.push({k:'burst',big:true,x:b.x,y:b.y,t0:performance.now(),dur:700}); A.play('win'); },300); }
+      }, 380+(n-1)*90);
+      const lv=addXP(gain);
+      if(lv) setTimeout(()=>A.sfx('level'),900);
+      msg=`<div class="fb ok"><b>${crit?'Coup critique!':'Bonne réponse!'}</b> −${dmg} PV à ${nm} · +1 cœur · +${gain} XP</div>`+(lv?`<div class="fb lv">NIVEAU ${G.level}!</div>`:'');
+    } else {
+      L.streak=0; hearts--;
+      L.fx.push({k:'lunge',t0:now,dur:420});
+      setTimeout(()=>{ if(LV!==L) return; const t=performance.now(); L.fx.push({k:'hflash',t0:t,dur:500},{k:'pop',text:'-1',x:hx,y:hy-18,c:'#ff6b7e',t0:t,dur:900,size:10}); shakeUntil=t+320; A.sfx('hurt'); shakeHearts(); updateHUD(); },210);
+      if(hearts<=0) setTimeout(()=>A.play('lose'),700);
+      msg=`<div class="fb no"><b>Raté!</b> La bonne réponse : ${q.good}</div>`;
+    }
+    btn=b.hp<=0?'Victoire ▶':hearts<=0?'Continuer ▶':'Question suivante ▶';
+  }
+  save(); updateHUD(); updateECard();
+  panel.querySelector('.brow')?.remove();
+  const box=document.createElement('div'); box.className='after';
+  box.innerHTML=msg+`<p class="expl">${q.e}</p><div class="row end"><button class="btn" data-act="next">${btn}</button></div>`;
+  panel.appendChild(box); box.querySelector('button').focus({preventScroll:true});
+}
+function afterAnswer(){
+  const L=LV; if(!L||!Q) return;
+  if(Q.mode==='block'){ Q=null; if(hearts<=0) ko(); else { L.mode=L.boss.dead?'walk':'play'; showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){} } }
+  else { if(L.boss.hp<=0) bossDown(); else if(hearts<=0) ko(); else bossQuestion(); }
+}
+function bossDown(){
+  const L=LV; Q=null; L.boss.dead=true; L.mode='walk'; L.medal={x:L.boss.x,y:L.boss.y};
+  overlays(); showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){}
+}
+function levelClear(){
+  const L=LV, z=L.z, fin=L.idx===8, first=!fin && !G.beaten.includes(z.id);
+  L.mode='done'; A.sfx('level'); A.play('win');
+  if(first){ G.beaten.push(z.id); G.vit++; }
+  if(fin) G.finalWon=true;
+  save(); updateHUD();
+  const all=SYS.every(s=>G.beaten.includes(s.id));
+  let html=`<h2>Niveau terminé!</h2><p>${z.ennemi.nom} est vaincu. Blocs du savoir : ${L.qDone} / ${L.nQ} · ATP ramassé : ${L.atp}.</p>`;
+  if(fin){ html+=`<p>Le corps de Max retrouve son équilibre…</p><div class="row end"><button class="btn" data-act="ending">Voir la fin ▶</button></div>`; }
+  else{
+    if(first) html+=`<div class="reward"><span class="medal" style="--c:${z.color}"></span><div><b class="gold">Insigne : ${z.nom}</b><br>+1 Vitamine C ajoutée à ton sac.</div></div>`;
+    else html+=`<p>Entraînement réussi : ton XP a augmenté.</p>`;
+    if(first && all) html+=`<p class="warn">Alerte! Le Pathogène Suprême s’est réveillé au cœur du corps de Max…</p>`;
+    else if(first) html+=`<p>Encore <b class="gold">${8-G.beaten.length} insigne${8-G.beaten.length>1?'s':''}</b> à gagner avant d’affronter le Pathogène Suprême.</p>`;
+    html+=`<div class="row end"><button class="btn" data-act="mapNext">Retour à la carte ▶</button></div>`;
+  }
+  setPanel(html);
+}
+function ko(){
+  const L=LV; L.mode='ko'; Q=null; A.play('lose');
+  setPanel(`<h2>Globi est K.O.!</h2><p>Pas de panique : ton XP, tes insignes et ton ATP sont conservés. Relis la fiche du savoir et retente ta chance.</p>
+    <div class="row">${L.boss.started?`<button class="btn" data-act="retryBoss">Réessayer le gardien ▶</button>`:''}<button class="btn ${L.boss.started?'ghost':''}" data-act="restart">Recommencer le niveau${L.boss.started?'':' ▶'}</button><button class="btn ghost" data-act="fiche">Relire la fiche</button><button class="btn ghost" data-act="map">Carte</button></div>`);
+}
+function retryBoss(){
+  const L=LV, b=L.boss; hearts=maxHearts(); updateHUD();
+  b.hp=b.max; b.dying=0; b.dead=false; L.streak=0; L.n=0; L.fx=[]; L.mode='bossintro';
+  L.p.x=L.arenaX+40; L.p.y=10*TS-20; L.p.vx=0; L.p.vy=0; L.p.inv=0;
+  overlays(); updateECard(); A.play(L.idx===8?'boss':'battle');
+  dialog([`${L.z.ennemi.nom} est de retour à pleine forme. Concentre-toi!`],()=>bossQuestion());
+}
+function ending(){
+  scene='end'; LV=null; overlays(); A.play('title'); hearts=maxHearts(); updateHUD(); fireworks=[];
+  const pct=G.total?Math.round(G.correct/G.total*100):0;
+  setPanel(`<h2>Max est guéri!</h2><p>Grâce à toi, les 9 gardiens sont vaincus. Tous les systèmes du corps fonctionnent de nouveau ensemble.</p>
+    <div class="stats"><div class="stat">Niveau<b>${G.level}</b></div><div class="stat">Bonnes réponses<b>${G.correct} / ${G.total}</b></div><div class="stat">Précision<b>${pct} %</b></div><div class="stat">ATP ramassé<b>${G.atp}</b></div></div>
+    <div class="row"><button class="btn" data-act="map">Carte (entraînement libre)</button><button class="btn ghost" data-act="newGame">Nouvelle partie</button></div>`);
+}
+
+/* =========================================================
+   PHYSIQUE DE PLATEFORME
+   ========================================================= */
+function solid(c,r){ const L=LV; if(c<0||c>=L.W) return true; if(r<0||r>=ROWS) return false; return L.grid[r][c]!=='.'; }
+function moveX(o,dt){
+  o.x+=o.vx*dt;
+  const r0=Math.floor(o.y/TS), r1=Math.floor((o.y+o.h-0.01)/TS);
+  if(o.vx>0){ const c=Math.floor((o.x+o.w-0.01)/TS); for(let r=r0;r<=r1;r++) if(solid(c,r)){ o.x=c*TS-o.w; o.vx=0; return true; } }
+  else if(o.vx<0){ const c=Math.floor(o.x/TS); for(let r=r0;r<=r1;r++) if(solid(c,r)){ o.x=(c+1)*TS; o.vx=0; return true; } }
+  return false;
+}
+function moveY(o,dt){
+  o.y+=o.vy*dt; o.onGround=false;
+  const c0=Math.floor(o.x/TS), c1=Math.floor((o.x+o.w-0.01)/TS);
+  if(o.vy>0){ const r=Math.floor((o.y+o.h-0.01)/TS); for(let c=c0;c<=c1;c++) if(solid(c,r)){ o.y=r*TS-o.h; o.vy=0; o.onGround=true; return null; } }
+  else if(o.vy<0){
+    const r=Math.floor(o.y/TS), mid=Math.floor((o.x+o.w/2)/TS); let hit=null;
+    if(solid(mid,r)) hit=mid; else for(let c=c0;c<=c1;c++) if(solid(c,r)){ hit=c; break; }
+    if(hit!==null){ o.y=(r+1)*TS; o.vy=0; return {c:hit,r}; }
+  }
+  return null;
+}
+const overlap=(a,b,s=0)=>a.x+s<b.x+b.w-s && a.x+a.w-s>b.x+s && a.y+s<b.y+b.h-s && a.y+a.h-s>b.y+s;
+function squashOn(c,r){ for(const e of LV.enemies) if(e.alive&&!e.squash&&Math.abs(e.x+7-(c*TS+8))<14&&Math.abs(e.y+e.h-r*TS)<3){ e.squash=0.45; addATP(1,e.x,e.y,true); } }
+function bump(c,r,now){
+  const L=LV; if(r<0||r>=ROWS||c<0||c>=L.W) return;
+  const k=L.grid[r][c];
+  if(k==='S'){ L.grid[r][c]='U'; L.bumps[c+','+r]=now; A.sfx('block'); squashOn(c,r); blockQuestion(c,r); return; }
+  if(k==='B'){ L.bumps[c+','+r]=now; A.sfx('bump'); squashOn(c,r); return; }
+  A.sfx('bump');
+}
+function updateLevel(dt,now){
+  const L=LV, p=L.p;
+  if(!modal.hidden) return;
+  if(L.mode==='question'||L.mode==='done'||L.mode==='ko') return;
+  const ctrl=(L.mode==='play'||L.mode==='walk') && !DLG;
+  p.inv=Math.max(0,p.inv-dt); jumpBuf=Math.max(0,jumpBuf-dt);
+  p.coyote=p.onGround?0.09:Math.max(0,p.coyote-dt);
+  let dir=0; if(ctrl){ if(keys.left) dir-=1; if(keys.right) dir+=1; }
+  const max=(keys.run&&ctrl)?140:88;
+  if(dir){ p.vx+=dir*(p.onGround?640:500)*dt; p.face=dir; if(Math.abs(p.vx)>max) p.vx=Math.sign(p.vx)*Math.max(max,Math.abs(p.vx)-420*dt); }
+  else { const f=(p.onGround?760:220)*dt; if(Math.abs(p.vx)<=f) p.vx=0; else p.vx-=Math.sign(p.vx)*f; }
+  if(ctrl && jumpBuf>0 && p.coyote>0){ p.vy=-((keys.run&&Math.abs(p.vx)>100)?372:356); p.onGround=false; p.coyote=0; jumpBuf=0; p.jumping=true; A.sfx('jump'); }
+  if(p.jumping && !keys.jump && p.vy<-130) p.vy=-130;
+  p.vy=Math.min(430,p.vy+930*dt);
+  moveX(p,dt);
+  if(L.boss.started && p.x<L.arenaX){ p.x=L.arenaX; p.vx=0; }
+  const hit=moveY(p,dt);
+  if(p.onGround) p.jumping=false;
+  if(hit){ p.jumping=false; if(ctrl) bump(hit.c,hit.r,now); if(L.mode==='question') return; }
+  // pathogènes
+  for(const e of L.enemies){
+    if(!e.alive) continue;
+    if(e.squash>0){ e.squash-=dt; if(e.squash<=0) e.alive=false; continue; }
+    if(!e.on){ if(e.x<L.cam+W+24) e.on=true; else continue; }
+    const v=e.vx; e.vy=Math.min(400,e.vy+900*dt);
+    if(moveX(e,dt)) e.vx=-v;
+    moveY(e,dt);
+    if(e.onGround){ const fx=e.vx<0?e.x-1:e.x+e.w+1; if(!solid(Math.floor(fx/TS),Math.floor((e.y+e.h+2)/TS))) e.vx=-e.vx; }
+    if(e.y>ROWS*TS+40){ e.alive=false; continue; }
+    if(ctrl && overlap(p,e,2)){
+      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; p.vy=keys.jump?-330:-210; p.jumping=keys.jump; A.sfx('stomp'); addATP(1,e.x+7,e.y,true); L.fx.push({k:'pop',text:'+1 ATP',x:e.x+7,y:e.y-8,c:'#ffd23f',t0:now,dur:800,size:8}); }
+      else hurt(e.x+7);
+      if(L.mode==='ko') return;
+    }
+  }
+  if(ctrl){
+    for(const a of L.atps){ if(!a.taken && overlap(p,{x:a.x-4,y:a.y-5,w:8,h:10})){ a.taken=true; addATP(1,a.x,a.y); } }
+    for(const cp of L.cps){ if(!cp.on && overlap(p,{x:cp.x-2,y:cp.y-34,w:14,h:34})){ cp.on=true; L.respawn={x:cp.x,y:cp.y-20}; A.sfx('checkpoint'); L.fx.push({k:'pop',text:'POINT DE CONTRÔLE',x:cp.x+6,y:cp.y-46,c:'#7ff0a4',t0:now,dur:1300,size:8}); } }
+    if(L.medal && overlap(p,{x:L.medal.x-9,y:L.medal.y-12,w:18,h:24})){ L.medal=null; levelClear(); return; }
+  }
+  // chute dans un trou
+  if(p.y>ROWS*TS+24){
+    hearts--; A.sfx('fall'); shakeHearts(); updateHUD();
+    if(hearts<=0){ ko(); return; }
+    p.x=L.respawn.x; p.y=L.respawn.y; p.vx=0; p.vy=0; p.inv=1.6; L.cam=Math.max(0,p.x-130);
+    if(L.mode==='play') showPlayPanel();
+  }
+  if(L.mode==='play' && !L.boss.started && p.x>L.arenaX+28){ bossIntro(); }
+  const target=L.boss.started?L.arenaX:Math.max(0,Math.min(L.W*TS-W,p.x+7-130));
+  L.cam+=(target-L.cam)*Math.min(1,dt*(L.boss.started?4:12));
+}
+
+/* =========================================================
+   RENDU DU NIVEAU
+   ========================================================= */
+function drawBoss(L,now,t,cam){
+  const b=L.boss, z=L.z, fx=L.fx;
+  if(b.dead && (!b.dying || now>b.dying+950)) return;
+  if(b.dying && now>b.dying+950) return;
+  const has=k=>fx.find(f=>f.k===k && now>=f.t0 && now<f.t0+f.dur);
+  let ex=b.x-cam, ey=b.y-VY+Math.round(Math.sin(t*2)*2);
+  const lu=has('lunge'); if(lu){ const pr=(now-lu.t0)/lu.dur, dist=Math.max(0,ex-(L.p.x+7-cam)-46); ex-=Math.round(Math.sin(pr*Math.PI)*dist); }
+  let pal=z.ennemi.pal;
+  const ef=has('eflash'); if(ef && Math.floor((now-ef.t0)/70)%2===0) pal=WHITE;
+  if(b.dying && now>b.dying){ const pr=(now-b.dying)/950; ey+=Math.round(pr*18); if(Math.floor(pr*24)%2) return; }
+  if(ex<-60||ex>W+60) return;
+  ENEMY[z.ennemi.type](ex,ey,t,pal);
+}
+function drawFx(L,now,cam){
+  for(const f of L.fx){
+    if(now<f.t0 || now>f.t0+f.dur) continue;
+    const p=(now-f.t0)/f.dur;
+    if(f.k==='proj'){ const x=f.x0+(f.x1-f.x0)*p-cam, y=f.y0+(f.y1-f.y0)*p-Math.sin(p*Math.PI)*18-VY; for(let i=1;i<4;i++) R(x-i*5,y+i*2,2,2,'rgba(248,197,55,'+(0.6-i*0.15)+')'); drawY(x,y,'#f8c537'); }
+    if(f.k==='burst'){ for(let k=0;k<12;k++){ const a=k*0.5236, r=6+p*(f.big?44:24); R(f.x-cam+Math.cos(a)*r,f.y-VY+Math.sin(a)*r,2,2,k%2?'#ffe66b':'#ffffff'); } }
+    if(f.k==='heal'){ for(let k=0;k<6;k++){ const x=f.x-cam-12+k*5, y=f.y-VY-p*30-(k%2)*6; R(x,y,2,4,'#7ff0a4'); R(x-1,y+1,4,2,'#7ff0a4'); } }
+    if(f.k==='tok'){ drawATP(f.x-cam,f.y-VY-Math.sin(p*Math.PI)*22,now/1000); }
+    if(f.k==='pop'){ txt(f.text,f.x-cam,f.y-VY-p*14,f.c,f.size||8,'center',FONT_HUD); }
+  }
+}
+function drawLevel(L,t,now,dt){
+  const cam=Math.round(L.cam);
+  drawSky(L.th,cam,t);
+  drawParts(dt,t);
+  drawTiles(L,cam,now,t);
+  for(const cp of L.cps){ const sx=cp.x-cam; if(sx>-20&&sx<W+20) drawCheckpoint(cp,sx,cp.y-VY,t); }
+  for(const a of L.atps){ if(a.taken) continue; const sx=a.x-cam; if(sx>-8&&sx<W+8) drawATP(sx,a.y-VY,t); }
+  const pal=L.z.ennemi.pal, type=L.z.ennemi.type;
+  for(const e of L.enemies){ if(!e.alive) continue; const sx=e.x-cam; if(sx>-20&&sx<W+20) drawMinion(e,sx,e.y-VY,t,pal,type); }
+  drawBoss(L,now,t,cam);
+  if(L.medal) drawMedal(L.medal.x-cam,L.medal.y-VY,t,L.z);
+  const p=L.p, hf=L.fx.find(f=>f.k==='hflash'&&now>=f.t0&&now<f.t0+f.dur);
+  const blink=p.inv>0 && Math.floor(now/80)%2===0;
+  if(L.mode==='ko'){ ctx.save(); ctx.globalAlpha=0.5; drawGlobi(p.x-cam,p.y-VY,t,{face:1,onGround:true,vx:0},null); ctx.restore(); }
+  else if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,(hf&&Math.floor((now-hf.t0)/70)%2===0)?'#ff5a6e':null);
+  drawFx(L,now,cam);
+  // HUD
+  const night=L.th.deco==='neurons'||L.th.deco==='mix';
+  R(0,0,W,13,night?'rgba(0,0,0,.35)':'rgba(10,20,60,.28)');
+  drawATP(8,6,t); txt('×'+String(L.atp).padStart(2,'0'),14,3,'#ffffff',8,'left',FONT_HUD);
+  txt((L.idx===8?'CŒUR':L.z.court).toUpperCase(),160,3,'#ffffff',8,'center',FONT_HUD);
+  txt('SAVOIR '+L.qDone+'/'+L.nQ,316,3,'#ffffff',8,'right',FONT_HUD);
+  if(!modal.hidden && scene==='level'){ R(0,0,W,H,'rgba(0,0,0,.45)'); txt('PAUSE',160,82,'#ffffff',16,'center',FONT_HUD); }
+}
+
+/* ---------- Carte du corps ---------- */
+const LEG=[{h:'NUTRITION',y:10},{i:0,y:22},{i:1,y:32},{i:2,y:42},{i:3,y:52},{i:4,y:62},{h:'RELATION',y:80},{i:5,y:92},{i:6,y:102},{h:'REPRODUCTION',y:120},{i:7,y:132},{h:'RÉVISION',y:150},{i:8,y:162}];
+function bodyShape(c,g){
+  disc(160,21,13+g,c); R(155-g,32,10+2*g,12,c);
+  R(137-g,42-g,46+2*g,66+g,c); disc(140,50,8+g,c); disc(180,50,8+g,c);
+  R(124-g,46,10+2*g,64,c); R(186-g,46,10+2*g,64,c); disc(129,113,6+g,c); disc(191,113,6+g,c);
+  R(139-g,104,42+2*g,16,c);
+  R(141-g,118,16+2*g,50,c); R(163-g,118,16+2*g,50,c);
+  R(136-g,166-g,21+2*g,6+2*g,c); R(163-g,166-g,21+2*g,6+2*g,c);
+}
+function drawMap(t,now,dt){
+  R(0,0,W,H,'#6aa6ff'); R(0,120,W,60,'#5b97f2');
+  const off=t*6; for(let i=-1;i<4;i++) drawCloud(((i*130-off)%(W+130)+W+130)%(W+130)-60, 14+((i+4)%3)*16);
+  drawParts(dt,t);
+  R(2,4,102,172,'rgba(10,20,60,.55)'); R(208,4,110,172,'rgba(10,20,60,.55)');
+  bodyShape('#6b2f45',1); bodyShape('#f0b49c',0);
+  R(137,44,4,62,'#d9937d'); R(141,120,3,46,'#d9937d'); R(163,120,3,46,'#d9937d');
+  disc(160,17,9,'#f7a6b8'); line(154,15,158,19,'#e07a96'); line(161,13,166,18,'#e07a96');
+  ell(150,57,7,11,'#f2a1a6'); ell(170,57,7,11,'#f2a1a6'); disc(165,63,4,'#d23c4f');
+  ell(154,83,8,6,'#e8a24a'); ell(161,97,13,6,'#e6b77a'); ell(149,93,3,5,'#b4475a'); ell(172,93,3,5,'#b4475a');
+  R(148,122,3,44,'#fff3e8'); R(169,122,3,44,'#fff3e8');
+  for(let i=0;i<8;i++){
+    const [ax,ay]=ALL[i].node, [bx,by]=ALL[i+1].node, d=Math.hypot(bx-ax,by-ay), n=Math.floor(d/3);
+    const col=isBeaten(i)?'#f8c537':'#3a4a90';
+    for(let k=1;k<n;k+=2) R(ax+(bx-ax)*k/n,ay+(by-ay)*k/n,1,1,col);
+  }
+  ALL.forEach((z,i)=>{
+    const [x,y]=z.node, un=isUnlocked(i);
+    if(!un){ disc(x,y,5,'#0b0f2a'); disc(x,y,4,'#2a3366'); R(x-1,y-1,3,3,'#46508a'); return; }
+    if(i===sel) ring(x,y,8+Math.round(1+Math.sin(t*6)),'#ffffff');
+    if(i===8){ for(let k=0;k<8;k++){ const a=t+k*0.785; line(x,y,x+Math.cos(a)*8,y+Math.sin(a)*8,'#3d0a2b'); } disc(x,y,6,'#0d0414'); disc(x,y,5,`hsl(${(t*80)%360},85%,60%)`); R(x-2,y-2,2,2,'#ffffff'); }
+    else { disc(x,y,6,'#0b0f2a'); disc(x,y,5,z.color); R(x-2,y-3,2,2,'#ffffff'); }
+    if(isBeaten(i)) star(x+4,y-11,'#f8c537');
+  });
+  const [tx,ty]=ALL[sel].node; mp.x+=(tx-mp.x)*Math.min(1,dt*9); mp.y+=(ty-mp.y)*Math.min(1,dt*9);
+  miniGlobi(mp.x-11,mp.y-11,t);
+  LEG.forEach(l=>{
+    if(l.h){ txt(l.h,6,l.y,'#f8c537',7); return; }
+    const z=ALL[l.i], un=isUnlocked(l.i), nm=(l.i===8&&!un)?'???':z.court;
+    if(l.i===sel){ R(3,l.y-1,98,10,'#25347a'); R(5,l.y+2,2,1,'#fff'); R(5,l.y+3,3,1,'#fff'); R(5,l.y+4,2,1,'#fff'); }
+    R(11,l.y+1,6,6,un?(l.i===8?'#ff4fa3':z.color):'#2a3366');
+    txt(nm,21,l.y-1,l.i===sel?'#ffffff':un?'#d6dcff':'#6a74b0',7);
+    if(isBeaten(l.i)) star(92,l.y+1,'#f8c537');
+  });
+  txt('INSIGNES',214,8,'#f8c537',7);
+  SYS.forEach((z,k)=>{ const cx=226+(k%4)*24, cy=31+Math.floor(k/4)*22;
+    if(G.beaten.includes(z.id)){ disc(cx,cy,9,'#7a5a10'); disc(cx,cy,8,'#f8c537'); disc(cx,cy,6,z.color); star(cx-2,cy-2,'#ffffff'); }
+    else { disc(cx,cy,8,'#0b0f2a'); disc(cx,cy,7,'#1a2456'); }
+  });
+  const nx=nextIdx();
+  txt('PROCHAIN GARDIEN',214,68,'#aab4ee',6);
+  txt(G.finalWon?'Aucun : corps guéri!':ALL[nx].ennemi.nom,214,77,'#ffffff',8);
+  txt('PATIENT : MAX',214,100,'#aab4ee',6);
+  R(213,110,100,40,'#05112a'); R(213,110,100,1,'#1f4a6a'); R(213,149,100,1,'#1f4a6a');
+  for(let x=217;x<313;x+=8) R(x,111,1,38,'#0b2238');
+  const heal=healPct();
+  let prev=null; for(let px=0;px<96;px++){ const ph=(px+Math.floor(t*(20+heal*0.3)))%40; let v=0;
+    if(ph===14)v=-2; else if(ph===18)v=3; else if(ph===19)v=-12; else if(ph===20)v=8; else if(ph===21)v=-2; else if(ph>=27&&ph<=30)v=-3;
+    const y=130+v; if(prev!==null) line(215+px-1,prev,215+px,y,heal>=100?'#7ff0a4':'#4fd1a5'); prev=y; }
+  txt('GUÉRISON '+heal+' %',214,154,heal>=100?'#7ff0a4':'#ffffff',7);
+}
+
+/* ---------- Titre (niveau de démonstration) / fin ---------- */
+function drawTitle(t,now,dt){
+  if(!DEMO) DEMO=buildLevel(1,{demo:true});
+  const L=DEMO, maxC=L.MAIN*TS-W-40;
+  demoCam=(demoCam+dt*42)%maxC;
+  const cam=Math.round(demoCam);
+  drawSky(L.th,cam,t); drawParts(dt,t);
+  drawTiles(L,cam,now,t);
+  for(const a of L.atps){ const sx=a.x-cam; if(sx>-8&&sx<W+8) drawATP(sx,a.y-VY,t); }
+  const col=Math.floor((cam+97)/TS), gh=L.h[col]*TS;
+  const ph=(t%1.6)/1.6, hop=ph<0.45?Math.sin(ph/0.45*Math.PI)*34:0;
+  drawGlobi(90,gh-20-VY-hop,t,{face:1,onGround:hop===0,vx:50},null);
+}
+let fireworks=[], lastFw=0;
+function drawEnding(t,now,dt){
+  R(0,0,W,H,'#131c45'); for(let y=4;y<H;y+=8) for(let x=4;x<W;x+=8) R(x,y,1,1,'#1e2a62');
+  if(now-lastFw>600){ lastFw=now; fireworks.push({x:40+Math.random()*240,y:20+Math.random()*70,t0:now,c:SYS[Math.floor(Math.random()*8)].color}); }
+  fireworks=fireworks.filter(f=>now-f.t0<1200);
+  fireworks.forEach(f=>{ const p=(now-f.t0)/1200; for(let k=0;k<14;k++){ const a=k*0.449, r=p*30; R(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r+p*p*14,2,2,f.c); } });
+  SYS.forEach((z,k)=>{ const a=t*0.8+k*0.785, cx=160+Math.cos(a)*62, cy=98+Math.sin(a)*34; disc(cx,cy,8,'#7a5a10'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#fff'); });
+  ctx.save(); ctx.translate(160,100); ctx.scale(2,2); drawHero(0,0,t,null); ctx.restore();
+}
+
+/* ---------- Fenêtres : codex & aide ---------- */
+let lastFocus=null;
+function openModal(html){ if(modal.hidden) lastFocus=document.activeElement; for(const k in keys) keys[k]=false; mbox.innerHTML=html; modal.hidden=false; const f=mbox.querySelector('button:not(:disabled)'); if(f) f.focus({preventScroll:true}); }
+function closeModal(){ modal.hidden=true; if(scene==='level' && LV && (LV.mode==='play'||LV.mode==='walk')){ try{ cv.focus({preventScroll:true}); }catch(e){} } else if(lastFocus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
+function codexList(){
+  openModal(`<h2 id="mTitle">Codex des systèmes</h2><p class="hint">Toutes les fiches des systèmes sont disponibles. Relis-les avant les niveaux!</p>
+    <div class="codex">${ALL.map((z,i)=>isUnlocked(i)
+      ?`<button class="btn cx" data-act="cxView" data-arg="${i}"><span class="chip" style="--c:${chipColor(i)}"></span>${i===8?'Révision finale':z.nom}${isBeaten(i)?' ★':''}</button>`
+      :`<button class="btn cx" disabled><span class="chip" style="--c:#2a3366"></span>??? (verrouillé)</button>`).join('')}</div>
+    <div class="row end"><button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
+}
+function cxView(i,solo){
+  const z=ALL[i];
+  openModal(`<h2 id="mTitle">${i===8?'Révision finale':z.nom}</h2><p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b></p>${ficheHTML(z)}
+    <div class="row end">${solo?'':'<button class="btn ghost" data-act="codex">◀ Codex</button>'}<button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
+}
+function help(){
+  openModal(`<h2 id="mTitle">Comment jouer</h2>
+    <p>Choisis un système sur la carte du corps de Max. Chaque système est un niveau de plateforme.</p>
+    <p>Frappe les blocs du savoir (avec une ampoule) par en dessous : une question apparaît. Bonne réponse : +1 cœur, +10 XP et +3 ATP. Erreur : tu perds un cœur.</p>
+    <p>Saute sur les petits pathogènes pour les écraser. Si tu les touches de côté ou si tu tombes dans un trou, tu perds un cœur. Le drapeau vert est un point de contrôle.</p>
+    <p>Au bout du niveau, le gardien t’attend : chaque bonne réponse lui lance un anticorps. Trois bonnes réponses de suite : coups critiques! Ramasse ensuite l’insigne.</p>
+    <p>Chaque bonne réponse (blocs et gardien) donne +1 cœur, sans limite. Mais au début de chaque niveau, et chaque fois que tu recommences, tu repars avec 3 cœurs. 30 ATP = 1 Vitamine C, qui redonne un cœur.</p>
+    <div class="keys"><kbd>← →</kbd><span>Bouger (aussi Q / D ou A / D)</span><kbd>Espace ↑</kbd><span>Sauter (bouton A)</span><kbd>Maj</kbd><span>Courir (bouton B)</span><kbd>1 2 3 4</kbd><span>Répondre aux questions</span><kbd>Échap</kbd><span>Fermer une fenêtre</span></div>
+    <p class="hint">La progression est sauvegardée dans ce navigateur.</p>
+    <div class="row end"><button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
+}
+
+/* ---------- Actions ---------- */
+const ACT={
+  newGame(){ A.sfx('confirm'); if(loadSave()&&(G.beaten.length||G.level>1||G.total)) confirmNew(); else startNew(); },
+  startNew(){ A.sfx('confirm'); startNew(); },
+  cont(){ A.sfx('confirm'); G=loadSave()||fresh(); updateHUD(); G.finalWon?ending():toMap(); },
+  title(){ toTitle(); },
+  end(){ ending(); },
+  dlgNext(){ const d=DLG; if(!d) return; if(d.typing){ d.full(); return; } A.sfx('select'); d.i++; if(d.i<d.lines.length) showDlg(); else { DLG=null; d.done&&d.done(); } },
+  map(){ A.sfx('select'); toMap(sel); },
+  mapNext(){ A.sfx('confirm'); toMap(); },
+  explore(){ A.sfx('confirm'); prep(); },
+  go(){ A.sfx('confirm'); startLevel(false); },
+  restart(){ A.sfx('confirm'); startLevel(true); },
+  retryBoss(){ A.sfx('confirm'); retryBoss(); },
+  answer(a){ answer(+a); },
+  next(){ A.sfx('select'); afterAnswer(); },
+  quit(){ A.sfx('select'); toMap(sel); },
+  fiche(){ A.sfx('select'); cxView(LV?LV.idx:sel,true); },
+  vitamin(){ if(G.vit<1) return; G.vit--; hearts++; save(); updateHUD(); A.sfx('heal');
+    if(LV){ const t=performance.now(); LV.fx.push({k:'heal',x:LV.p.x+7,y:LV.p.y+10,t0:t,dur:700},{k:'pop',text:'+1',x:LV.p.x+7,y:LV.p.y-6,c:'#7ff0a4',t0:t,dur:900,size:10}); }
+    panel.querySelectorAll('[data-act=vitamin]').forEach(b=>{ b.textContent='Vitamine C ×'+G.vit; b.disabled=G.vit<1; });
+    if(playing()){ try{ cv.focus({preventScroll:true}); }catch(e){} } },
+  prevZone(){ moveSel(-1); }, nextZone(){ moveSel(1); },
+  ending(){ ending(); },
+  codex(){ A.sfx('select'); codexList(); },
+  cxView(i){ A.sfx('select'); cxView(+i); },
+  help(){ A.sfx('select'); help(); },
+  closeModal(){ closeModal(); },
+  toggleSound(){ A.setMuted(!A.muted); $('#pSound').setAttribute('aria-pressed',String(!A.muted)); try{ localStorage.setItem(SAVE_KEY+'-mute',A.muted?'1':'0'); }catch(e){} if(playing()){ try{ cv.focus({preventScroll:true}); }catch(e){} } }
+};
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(!b||b.disabled) return; const f=ACT[b.dataset.act]; if(f) f(b.dataset.arg); });
+modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); });
+
+cv.addEventListener('click',e=>{
+  if(DLG){ ACT.dlgNext(); return; }
+  if(scene!=='map') return;
+  const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*W, y=(e.clientY-r.top)/r.height*H;
+  let hit=-1;
+  ALL.forEach((z,i)=>{ if(isUnlocked(i) && Math.hypot(z.node[0]-x,z.node[1]-y)<10) hit=i; });
+  if(hit<0) LEG.forEach(l=>{ if(l.i!=null && isUnlocked(l.i) && x<104 && y>=l.y-2 && y<l.y+9) hit=l.i; });
+  if(hit<0) return;
+  if(hit===sel){ ACT.explore(); } else { sel=hit; A.sfx('select'); showMapPanel(); }
+});
+
+/* ---------- Entrées : clavier ---------- */
+const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',KeyZ:'jump',KeyK:'jump',ShiftLeft:'run',ShiftRight:'run',KeyX:'run',KeyJ:'run'};
+function pressGame(k){ if(k==='jump'&&!keys.jump) jumpBuf=0.12; keys[k]=true; }
+document.addEventListener('keydown',e=>{
+  if(!modal.hidden){ if(e.key==='Escape') closeModal(); return; }
+  const act=KEYMAP[e.code];
+  if(playing() && act){ e.preventDefault(); if(!e.repeat) pressGame(act); else keys[act]=true; return; }
+  if(scene==='level' && Q && !Q.answered && !DLG){
+    if(e.repeat || performance.now()-Q.t0<350) { if(act) e.preventDefault(); return; }
+    const m='1234'.indexOf(e.key);
+    if(m>=0){ e.preventDefault(); answer(m); return; }
+    if(act && !(document.activeElement && document.activeElement.tagName==='BUTTON')) e.preventDefault();
+  }
+  if(scene==='map' && e.key.startsWith('Arrow')){ e.preventDefault(); moveSel(e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1); return; }
+  if(e.key.startsWith('Arrow') && scene!=='level'){
+    const bs=[...panel.querySelectorAll('button:not(:disabled)')]; if(!bs.length) return;
+    e.preventDefault(); let i=bs.indexOf(document.activeElement);
+    i=i<0?0:(i+(e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1)+bs.length)%bs.length; bs[i].focus(); A.sfx('select'); return;
+  }
+  if((e.key==='Enter'||e.key===' ') && DLG && !(document.activeElement && document.activeElement.tagName==='BUTTON')){ e.preventDefault(); ACT.dlgNext(); }
+  if(e.key==='Escape' && scene==='prep') toMap(sel);
+});
+document.addEventListener('keyup',e=>{ const act=KEYMAP[e.code]; if(act){ keys[act]=false; if(scene==='level' && act==='jump' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) e.preventDefault(); } });
+window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
+
+/* ---------- Entrées : croix et boutons A / B ---------- */
+document.querySelectorAll('[data-key]').forEach(el=>{
+  const k=el.dataset.key;
+  const down=e=>{
+    e.preventDefault(); A.init(); el.classList.add('on');
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    if(playing()){ pressGame(k); return; }
+    if(DLG && k==='jump'){ ACT.dlgNext(); return; }
+    if(scene==='map'){ if(k==='left') moveSel(-1); else if(k==='right') moveSel(1); else if(k==='jump') ACT.explore(); return; }
+    if(scene==='prep' && k==='jump'){ ACT.go(); return; }
+  };
+  const up=()=>{ el.classList.remove('on'); keys[k]=false; };
+  el.addEventListener('pointerdown',down);
+  el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('lostpointercapture',up);
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+  el.addEventListener('click',e=>e.preventDefault());
+});
+
+// le son démarre au premier geste
+const unlock=()=>{ A.init(); window.removeEventListener('pointerdown',unlock,true); window.removeEventListener('keydown',unlock,true); };
+window.addEventListener('pointerdown',unlock,true); window.addEventListener('keydown',unlock,true);
+try{ if(localStorage.getItem(SAVE_KEY+'-mute')==='1'){ A.setMuted(true); $('#pSound').setAttribute('aria-pressed','false'); } }catch(e){}
+
+/* ---------- Boucle de rendu ---------- */
+let last=performance.now();
+function frame(now){
+  const t=now/1000, dt=Math.min(0.033,(now-last)/1000); last=now;
+  ctx.setTransform(2,0,0,2,0,0);
+  if(shakeUntil>now) ctx.translate(Math.round(Math.random()*4-2),Math.round(Math.random()*4-2));
+  try{
+    if(scene==='title'||scene==='intro') drawTitle(t,now,dt);
+    else if(scene==='map') drawMap(t,now,dt);
+    else if((scene==='prep'||scene==='level') && LV){
+      if(scene==='level'){ updateLevel(dt,now); if(LV) LV.fx=LV.fx.filter(f=>now<f.t0+f.dur+50); }
+      if(LV) drawLevel(LV,t,now,dt);
+    }
+    else if(scene==='end') drawEnding(t,now,dt);
+  }catch(err){ console.error(err); }
+  requestAnimationFrame(frame);
+}
+if(document.fonts && document.fonts.load){ document.fonts.load('600 16px "Pixelify Sans"').catch(()=>{}); document.fonts.load('8px "Press Start 2P"').catch(()=>{}); }
+updateHUD(); toTitle(); requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>
