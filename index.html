@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Press+Start+2P&family=VT323&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 /* Layout: red handheld console on a bright sky — pixel screen in a dark bezel, NES dialog box below, D-pad / Start pills / A-B buttons at the bottom. Single deliberate look. */
 :root{
@@ -116,6 +117,21 @@ body{
 .warn{color:#ff9ad1}
 .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px}
 .stat{background:var(--box-hi); border:2px solid #4a58a8; padding:8px 10px; border-radius:4px}
+.modes{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
+.mode{display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:12px 14px; min-width:0}
+.mode b{font-size:17px; color:var(--gold); font-weight:700}
+.mode span{font-family:var(--body); font-size:19px; font-weight:400; color:var(--sub); line-height:1.05}
+.tchip[aria-pressed="true"]{background:var(--gold); color:#14112a; border-color:var(--gold)}
+.codein{font-family:var(--arcade); font-size:15px; width:7em; text-transform:uppercase; background:#0a1033; color:#fff; border:2px solid var(--edge); border-radius:4px; padding:7px 8px; letter-spacing:.15em}
+.codein:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+.code{font-family:var(--arcade); font-size:22px; color:var(--gold); letter-spacing:.2em}
+#cv.split{aspect-ratio:16/18; width:auto; max-width:100%; max-height:74vh; margin:0 auto}
+.rtouch{display:flex; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap; user-select:none; -webkit-user-select:none}
+.rpad{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:10px; background:var(--shell-shade)}
+.rpad > span{font-family:var(--arcade); font-size:11px; color:var(--shell-ink)}
+.rbtn{width:60px; height:52px; border-radius:10px; border:none; background:var(--pad); color:#fff; font-family:var(--arcade); font-size:12px; box-shadow:0 4px 0 #160f1d; touch-action:none; cursor:pointer}
+.rbtn.on,.rbtn:active{background:var(--pad-hi); transform:translateY(2px); box-shadow:0 2px 0 #160f1d}
+.rbtn:focus-visible{outline:3px solid var(--gold)}
 .stat b{display:block; font-family:var(--display); font-size:22px; color:var(--gold); font-variant-numeric:tabular-nums}
 
 /* ----- Commandes de la console ----- */
@@ -160,6 +176,8 @@ body{
   .say{font-size:22px}
   .ans{font-size:20px; min-height:46px}
   .bezel-top span:last-child{display:none}
+  .modes{grid-template-columns:1fr}
+  .rbtn{width:48px; height:48px}
   .controls{grid-template-columns:auto auto; grid-template-areas:"dpad ab" "mid mid"; justify-content:space-between}
 }
 @media (prefers-reduced-motion:reduce){
@@ -188,6 +206,11 @@ body{
         <div class="hp">PV<div class="bar" id="ebarWrap"><i id="ebar"></i></div><span class="num" id="enum">5/5</span></div>
       </div>
     </div>
+  </div>
+
+  <div class="rtouch" id="rtouch" hidden>
+    <div class="rpad" aria-label="Joueur 1"><span>J1</span><button class="rbtn" data-rk="0:left" aria-label="Joueur 1 gauche">◀</button><button class="rbtn" data-rk="0:right" aria-label="Joueur 1 droite">▶</button><button class="rbtn" data-rk="0:jump" aria-label="Joueur 1 saut">SAUT</button></div>
+    <div class="rpad" aria-label="Joueur 2"><span>J2</span><button class="rbtn" data-rk="1:left" aria-label="Joueur 2 gauche">◀</button><button class="rbtn" data-rk="1:right" aria-label="Joueur 2 droite">▶</button><button class="rbtn" data-rk="1:jump" aria-label="Joueur 2 saut">SAUT</button></div>
   </div>
 
   <div class="panel" id="panel" aria-live="polite"></div>
@@ -433,7 +456,169 @@ const FINAL = { id:'fin', nom:'Cœur du corps', court:'Pathogène', fonction:'R�
     {q:'Comment les hormones atteignent-elles leurs organes cibles?', o:['Par le sang','Par les nerfs','Par les uretères','Par l’œsophage'], e:'Les hormones sont des messagers chimiques libérés dans le sang, qui les transporte partout dans le corps.'}
   ]};
 
-const ALL = [...SYS, FINAL];
+
+/* =========================================================
+   LABO ET ATELIER — univers matériel et technologique (Sec 3)
+   Les générateurs reçoivent une fonction rnd() : nouvelles valeurs à chaque partie
+   ========================================================= */
+const fr=n=>{ const a=Math.abs(n); const d=a>0&&a<0.1?3:2; return (Math.round(n*10**d)/10**d).toLocaleString('fr-CA',{maximumFractionDigits:d}); };
+const pickR=(a,rnd)=>a[Math.floor(rnd()*a.length)];
+function mkNum(q,val,wrongs,unit,e){
+  const s=v=>fr(v)+(unit?' '+unit:''), good=s(val), o=[good], seen=new Set([good]);
+  for(const w of wrongs.concat([val*2,val/2,val*3,val+1,val*10,val/10])){ if(!isFinite(w)||w<=0) continue; const t=s(w); if(t.startsWith('0 ')||seen.has(t)) continue; seen.add(t); o.push(t); if(o.length===4) break; }
+  return {q,o,e};
+}
+const SOLUTES=['sel','sucre','sulfate de cuivre','bicarbonate de sodium','chlorure de calcium'];
+const GEN_CON=[
+  rnd=>{ const V=pickR([100,200,250,400,500,750],rnd), C=pickR([2,4,5,6,8,10,12,15,16,20,24,25,30,40,50,60],rnd), m=C*V/1000, so=pickR(SOLUTES,rnd);
+    return mkNum(`On dissout ${fr(m)} g de ${so} dans de l’eau pour obtenir ${V} mL de solution. Quelle est la concentration en g/L?`, C, [m/V, C/10, C*10], 'g/L', `C = m ÷ V = ${fr(m)} g ÷ ${fr(V/1000)} L = ${fr(C)} g/L. Convertis d’abord les mL en L (÷ 1000).`); },
+  rnd=>{ const V=pickR([100,200,250,400,500,750],rnd), C=pickR([4,5,8,10,12,20,25,40,50],rnd), m=C*V/1000, so=pickR(SOLUTES,rnd);
+    return mkNum(`Tu dois préparer ${V} mL d’une solution de ${so} à ${C} g/L. Quelle masse de ${so} dois-tu peser?`, m, [C*V, C/(V/1000), m*10], 'g', `m = C × V = ${C} g/L × ${fr(V/1000)} L = ${fr(m)} g.`); },
+  rnd=>{ const V=pickR([100,200,250,400,500,750],rnd), C=pickR([4,5,8,10,20,25,40,50],rnd), m=C*V/1000, so=pickR(SOLUTES,rnd);
+    return mkNum(`Tu as ${fr(m)} g de ${so} et tu veux une solution à ${C} g/L. Quel volume de solution dois-tu préparer?`, V, [m/C, m*C, V/10, V*2], 'mL', `V = m ÷ C = ${fr(m)} g ÷ ${C} g/L = ${fr(V/1000)} L, soit ${V} mL.`); },
+  rnd=>{ const p=pickR([1,2,3,4,5,8,10,12,15,20],rnd), V=pickR([50,100,150,200,250,500],rnd), m=p*V/100, so=pickR(SOLUTES,rnd);
+    return mkNum(`${fr(m)} g de ${so} sont dissous dans ${V} mL de solution. Quelle est la concentration en % m/v?`, p, [m/V, p*10, V/m], '%', `% m/v = m (g) ÷ V (mL) × 100 = ${fr(m)} ÷ ${V} × 100 = ${fr(p)} %.`); },
+  rnd=>{ const p=pickR([2,4,5,8,10,12,15,20,25],rnd), T=pickR([50,100,200,250,400,500],rnd), ms=p*T/100, mw=T-ms, so=pickR(['sel','sucre','sulfate de cuivre'],rnd);
+    return mkNum(`On dissout ${fr(ms)} g de ${so} dans ${fr(mw)} g d’eau. Quelle est la concentration en % m/m de la solution?`, p, [ms/mw*100, p*10, mw/T*100], '%', `Masse de la solution = ${fr(ms)} g + ${fr(mw)} g = ${fr(T)} g. % m/m = ${fr(ms)} ÷ ${fr(T)} × 100 = ${fr(p)} %. Piège : on divise par la masse de la solution, pas par la masse d’eau.`); },
+  rnd=>{ const p=pickR([3,4,5,10,12,15,20,40],rnd), T=pickR([100,200,250,500,750,1000],rnd), Vs=p*T/100, liq=pickR(['d’éthanol','d’acide acétique','d’alcool isopropylique'],rnd);
+    return mkNum(`Une solution de ${T} mL contient ${fr(Vs)} mL ${liq}. Quelle est sa concentration en % v/v?`, p, [Vs/(T-Vs)*100, p*10, T/Vs], '%', `% v/v = V soluté ÷ V solution × 100 = ${fr(Vs)} ÷ ${T} × 100 = ${fr(p)} %.`); },
+  rnd=>{ const p=pickR([0.5,0.9,1,2,3,5,12,25],rnd);
+    if(rnd()<0.5) return mkNum(`Une solution est à ${fr(p)} % m/v. Quelle est sa concentration en g/L?`, p*10, [p, p/10, p*100], 'g/L', `${fr(p)} % m/v = ${fr(p)} g par 100 mL = ${fr(p*10)} g par 1000 mL, donc ${fr(p*10)} g/L.`);
+    return mkNum(`Une solution a une concentration de ${fr(p*10)} g/L. Quelle est sa concentration en % m/v?`, p, [p*10, p/10, p*100], '%', `${fr(p*10)} g/L = ${fr(p*10)} g par 1000 mL = ${fr(p)} g par 100 mL, donc ${fr(p)} % m/v.`); },
+  rnd=>{ const C=pickR([8,12,16,20,24,40,60,80],rnd), f=pickR([2,4,5],rnd);
+    return mkNum(`On prend 100 mL d’une solution à ${C} g/L et on ajoute de l’eau pour obtenir ${100*f} mL. Quelle est la nouvelle concentration?`, C/f, [C*f, C, C-f], 'g/L', `La masse de soluté ne change pas. Le volume est multiplié par ${f}, donc la concentration est divisée par ${f} : ${C} ÷ ${f} = ${fr(C/f)} g/L.`); }
+];
+const METAUX=[['L’aluminium',2.7],['Le fer',7.9],['Le cuivre',8.9],['Le plomb',11.3],['L’or',19.3]];
+const GEN_MAT=[
+  rnd=>{ const rho=pickR([0.8,0.9,2.7,7.9,8.9,11.3],rnd), V=pickR([5,10,20,25,40,50],rnd), m=rho*V;
+    return mkNum(`Un échantillon de ${fr(m)} g occupe un volume de ${V} mL. Quelle est sa masse volumique?`, rho, [V/m, m*V, rho*10], 'g/mL', `ρ = m ÷ V = ${fr(m)} g ÷ ${V} mL = ${fr(rho)} g/mL.`); },
+  rnd=>{ const k=Math.floor(rnd()*METAUX.length), [nm,rho]=METAUX[k], V=pickR([2,4,5,10],rnd), m=rho*V;
+    const others=METAUX.filter((_,i)=>i!==k).map(x=>x[0]); const o=[nm];
+    while(o.length<4){ const c=pickR(others,rnd); if(!o.includes(c)) o.push(c); }
+    return {q:`Un bloc de métal a une masse de ${fr(m)} g et un volume de ${V} cm³. De quel métal s’agit-il? (Al 2,7 · Fe 7,9 · Cu 8,9 · Pb 11,3 · Au 19,3 g/cm³)`, o, e:`ρ = ${fr(m)} ÷ ${V} = ${fr(rho)} g/cm³ : c’est ${nm.toLowerCase()}. La masse volumique est une propriété caractéristique.`}; }
+];
+const LAB = [
+{ id:'con', nom:'Les concentrations', court:'Concentrations', fonction:'Univers matériel · les solutions', color:'#4fc3f7', part:'bubble', node:[170,34], gens:GEN_CON,
+  blurb:'Au labo de chimie, toutes les solutions sont mal préparées. Un bécher géant a mélangé les étiquettes. Prépare ta calculatrice!',
+  ennemi:{nom:'Saturax', type:'becher', pal:{a:'#5ad1ff',b:'#2a8fc0',o:'#0d2f4a',h:'#e6fbff'}},
+  intro:'Il a mélangé toutes les étiquettes des solutions! Calcule juste pour le diluer.',
+  fiche:[
+    '<b>Solution :</b> mélange homogène d’un <b>soluté</b> (la substance dissoute) dans un <b>solvant</b> (la substance qui dissout, souvent l’eau).',
+    '<b>Concentration en g/L :</b> C = m ÷ V, avec m en grammes de soluté et V en litres de solution. Attention : 250 mL = 0,25 L.',
+    '<b>% m/v :</b> grammes de soluté dans 100 mL de solution. % m/v = m (g) ÷ V (mL) × 100. Donc 1 % m/v = 10 g/L.',
+    '<b>% m/m :</b> grammes de soluté dans 100 g de solution. % m/m = m soluté ÷ m solution × 100. La masse de la solution = soluté + solvant.',
+    '<b>% v/v :</b> mL de soluté dans 100 mL de solution. % v/v = V soluté ÷ V solution × 100 (ex. : alcool, vinaigre).',
+    '<b>Dilution :</b> on ajoute du solvant. La masse de soluté ne change pas, la concentration diminue. Si le volume double, la concentration est divisée par 2.',
+    '<b>Solubilité :</b> quantité maximale de soluté qu’on peut dissoudre dans un volume de solvant, à une température donnée. Au-delà, la solution est saturée.'
+  ],
+  q:[
+    {q:'Dans de l’eau salée, quel est le soluté?', o:['Le sel','L’eau','La solution','Le bécher'], e:'Le soluté est la substance dissoute (le sel). Le solvant est la substance qui dissout (l’eau).'},
+    {q:'Que signifie une concentration de 12 % m/v?', o:['12 g de soluté dans 100 mL de solution','12 g de soluté dans 1 L de solution','12 mL de soluté dans 100 mL de solution','12 g de soluté dans 100 g de solution'], e:'Le % m/v compare une masse (g) de soluté à un volume (100 mL) de solution.'},
+    {q:'Un vinaigre est à 5 % v/v. Qu’est-ce que cela signifie?', o:['5 mL d’acide acétique dans 100 mL de vinaigre','5 g d’acide acétique dans 100 mL de vinaigre','5 mL d’acide acétique dans 1 L de vinaigre','5 g d’acide acétique dans 100 g de vinaigre'], e:'Le % v/v compare deux volumes : le volume de soluté dans 100 mL de solution.'},
+    {q:'Quelle concentration compare la masse du soluté à la masse de la solution?', o:['Le % m/m','Le % v/v','Le % m/v','Les g/L'], e:'m/m : masse sur masse. On l’utilise par exemple pour les alliages ou les aliments.'},
+    {q:'Lors d’une dilution, qu’est-ce qui reste constant?', o:['La masse de soluté','La concentration','Le volume de solution','La masse de solvant'], e:'On ajoute seulement du solvant : la quantité de soluté ne change pas, mais elle est répartie dans un plus grand volume.'},
+    {q:'Comment augmenter la concentration d’une solution sans ajouter de soluté?', o:['Faire évaporer une partie du solvant','Ajouter de l’eau','Brasser plus longtemps','Verser la solution dans un plus grand bécher'], e:'Si le volume de solvant diminue alors que le soluté reste, la concentration augmente.'},
+    {q:'Une solution est saturée lorsque…', o:['elle ne peut plus dissoudre de soluté à cette température','elle contient seulement du solvant','elle est colorée','elle vient d’être diluée'], e:'La solubilité est atteinte : le soluté ajouté ne se dissout plus et reste au fond.'},
+    {q:'1 % m/v équivaut à…', o:['10 g/L','1 g/L','100 g/L','0,1 g/L'], e:'1 g dans 100 mL = 10 g dans 1000 mL = 10 g/L.'}
+  ]},
+{ id:'mat', nom:'L’univers matériel', court:'Matériel', fonction:'Univers matériel · propriétés et transformations', color:'#9ccc65', part:'lymph', node:[170,76], gens:GEN_MAT,
+  blurb:'Dans la salle de sciences, une molécule instable dérègle tout : la glace bout, les gaz se cachent et les mélanges refusent de se séparer.',
+  ennemi:{nom:'Moléculox', type:'molecule', pal:{a:'#9ccc65',b:'#5a8f2a',o:'#1f3a10',h:'#f0ffd0'}},
+  intro:'Elle bouscule toutes les propriétés de la matière! Identifie-les pour la stabiliser.',
+  fiche:[
+    '<b>Propriétés caractéristiques :</b> elles permettent d’identifier une substance pure. Physiques : masse volumique, point de fusion, point d’ébullition, solubilité. Chimiques : réaction à un test.',
+    '<b>Masse volumique :</b> ρ = m ÷ V (en g/mL ou g/cm³). Eau : 1 g/mL. Une substance moins dense que l’eau flotte.',
+    '<b>Changements de phase :</b> fusion (solide → liquide), solidification (liquide → solide), vaporisation (liquide → gaz), condensation (gaz → liquide), sublimation (solide → gaz), condensation solide (gaz → solide).',
+    '<b>Changement physique :</b> la substance garde sa nature (changement de phase, dissolution, déformation). <b>Changement chimique :</b> de nouvelles substances se forment. Indices : gaz, changement de couleur, précipité, chaleur ou lumière.',
+    '<b>Tests :</b> tison qui se rallume → O₂; éclisse enflammée qui fait une petite explosion → H₂; eau de chaux qui se brouille → CO₂; tournesol bleu qui rougit → acide; chlorure de cobalt qui passe du bleu au rose → eau.',
+    '<b>Mélanges :</b> homogène (une seule phase visible, ex. : eau salée) ou hétérogène (plusieurs phases). Séparation : décantation, filtration, évaporation, distillation.',
+    '<b>Atome :</b> plus petite particule de matière d’un élément. <b>Molécule :</b> atomes liés. <b>Élément :</b> une sorte d’atome du tableau périodique (O, H, Na…).'
+  ],
+  q:[
+    {q:'Laquelle de ces propriétés est une propriété caractéristique?', o:['La masse volumique','La masse','Le volume','La température'], e:'La masse et le volume dépendent de la quantité. La masse volumique, elle, est propre à chaque substance.'},
+    {q:'Comment appelle-t-on le passage de l’état solide à l’état gazeux?', o:['La sublimation','La vaporisation','La fusion','La condensation'], e:'Exemple : la glace sèche (CO₂ solide) se sublime à la température de la pièce.'},
+    {q:'Le passage de l’état gazeux à l’état liquide s’appelle…', o:['la condensation','la vaporisation','la solidification','la sublimation'], e:'La buée sur un miroir de salle de bain, c’est de la vapeur d’eau qui se condense.'},
+    {q:'Lequel de ces phénomènes est un changement chimique?', o:['Un clou qui rouille','De la glace qui fond','Du sucre qui se dissout dans l’eau','Une feuille de papier déchirée'], e:'La rouille est une nouvelle substance. Les autres sont des changements physiques : la substance reste la même.'},
+    {q:'Lequel est un indice de changement chimique?', o:['La formation d’un précipité','Un changement de forme','Un changement de phase','Une dissolution'], e:'Un précipité est un nouveau solide qui apparaît dans un liquide : une nouvelle substance s’est formée.'},
+    {q:'Un tison rallume dans une éprouvette. Quel gaz s’y trouve?', o:['Le dioxygène (O₂)','Le dihydrogène (H₂)','Le dioxyde de carbone (CO₂)','La vapeur d’eau'], e:'Le dioxygène alimente la combustion : le tison se rallume.'},
+    {q:'Une éclisse enflammée produit une petite explosion. Quel gaz est présent?', o:['Le dihydrogène (H₂)','Le dioxygène (O₂)','Le dioxyde de carbone (CO₂)','La vapeur d’eau'], e:'Le dihydrogène est très inflammable : il réagit avec un petit « pop ».'},
+    {q:'Quel test permet de détecter le CO₂?', o:['L’eau de chaux qui se brouille','Le tison qui se rallume','Le papier tournesol qui rougit','Le chlorure de cobalt qui rosit'], e:'Le dioxyde de carbone brouille l’eau de chaux (elle devient laiteuse).'},
+    {q:'Le papier tournesol bleu devient rouge. La solution est…', o:['acide','basique','neutre','saturée'], e:'Le tournesol rougit en milieu acide et bleuit en milieu basique.'},
+    {q:'Le papier au chlorure de cobalt passe du bleu au rose. Il révèle la présence…', o:['d’eau','de dioxygène','d’un acide','de sucre'], e:'Le chlorure de cobalt sert à détecter l’eau.'},
+    {q:'Lequel de ces mélanges est homogène?', o:['De l’eau salée','De l’eau et de l’huile','Du sable dans l’eau','Une vinaigrette'], e:'Dans l’eau salée, on ne voit qu’une seule phase : c’est une solution, donc un mélange homogène.'},
+    {q:'Quelle technique sépare le sable de l’eau?', o:['La filtration','La dissolution','La sublimation','La condensation'], e:'Le filtre retient les particules solides (le résidu) et laisse passer le liquide (le filtrat).'},
+    {q:'Quelle technique permet de récupérer l’eau pure d’une eau salée?', o:['La distillation','La filtration','La décantation','Le tamisage'], e:'On fait bouillir l’eau salée et on condense la vapeur : le sel reste dans le ballon.'},
+    {q:'Que représente le symbole « Na » dans le tableau périodique?', o:['Le sodium','L’azote','Le néon','Le nickel'], e:'Na vient du latin natrium. L’azote est N, le néon Ne et le nickel Ni.'},
+    {q:'Une substance a une masse volumique de 0,8 g/mL. Que fait-elle dans l’eau (si elle ne s’y dissout pas)?', o:['Elle flotte','Elle coule','Elle se dissout obligatoirement','Elle s’évapore'], e:'0,8 g/mL est plus petit que 1 g/mL (l’eau) : la substance flotte.'},
+    {q:'À quelle température l’eau pure bout-elle, au niveau de la mer?', o:['100 °C','0 °C','50 °C','212 °C'], e:'Le point d’ébullition de l’eau est 100 °C. C’est une propriété caractéristique.'},
+    {q:'La plus petite particule d’un élément qui en garde les propriétés est…', o:['l’atome','la molécule','la cellule','le mélange'], e:'Une molécule est formée de plusieurs atomes liés ensemble.'}
+  ]},
+{ id:'tec', nom:'L’univers technologique', court:'Technologie', fonction:'Univers technologique · ingénierie et matériaux', color:'#ffb74d', part:'fiber', node:[170,118],
+  blurb:'Dans l’atelier, un engrenage déréglé fait tourner les machines à l’envers et coince toutes les liaisons.',
+  ennemi:{nom:'Engrenator', type:'engrenage', pal:{a:'#c9ced6',b:'#7d8590',o:'#262a33',h:'#ffcf5a'}},
+  intro:'Il fait tout tourner dans le mauvais sens! Remets la mécanique en ordre.',
+  fiche:[
+    '<b>Fonctions mécaniques :</b> liaison (unir des pièces), guidage (diriger un mouvement), étanchéité (empêcher un fluide de passer), lubrification (réduire le frottement).',
+    '<b>Caractéristiques d’une liaison :</b> directe ou indirecte (avec un organe de liaison : vis, colle…), rigide ou élastique, démontable ou indémontable, totale ou partielle.',
+    '<b>Guidage :</b> en translation (glissière), en rotation (axe, roulement) ou hélicoïdal (vis).',
+    '<b>Transmission du mouvement</b> (le type de mouvement ne change pas) : engrenages, roue et vis sans fin, roues dentées et chaîne, poulies et courroie, roues de friction.',
+    '<b>Transformation du mouvement</b> (le type de mouvement change) : pignon et crémaillère, vis et écrou, bielle et manivelle, came et tige.',
+    '<b>Changement de vitesse :</b> petite roue menante qui entraîne une grande roue menée → la vitesse diminue. Grande menante → petite menée → la vitesse augmente.',
+    '<b>Contraintes :</b> traction (étirer), compression (écraser), torsion (tordre), flexion (plier), cisaillement (couper).',
+    '<b>Propriétés mécaniques :</b> dureté, élasticité, ductilité (s’étirer en fil), malléabilité (s’aplatir en feuille), résilience (résister aux chocs), rigidité.',
+    '<b>Langage graphique :</b> projection orthogonale (vues de face, de dessus et de droite), perspective isométrique, échelle (1:2 = deux fois plus petit), cotation. Trait fort : contour visible; trait interrompu : contour caché; trait mixte : axe.'
+  ],
+  q:[
+    {q:'Quelle fonction mécanique sert à unir deux pièces?', o:['La liaison','Le guidage','L’étanchéité','La lubrification'], e:'La liaison unit des pièces. Le guidage, lui, dirige le mouvement d’une pièce.'},
+    {q:'Quelle fonction mécanique réduit le frottement entre deux pièces?', o:['La lubrification','La liaison','Le guidage','L’étanchéité'], e:'Un lubrifiant (huile, graisse) diminue le frottement et l’usure.'},
+    {q:'Le joint de caoutchouc d’un robinet assure quelle fonction?', o:['L’étanchéité','La lubrification','Le guidage en rotation','La liaison'], e:'Le joint empêche l’eau de fuir : c’est l’étanchéité.'},
+    {q:'Deux pièces de bois collées ensemble ont une liaison…', o:['indémontable','démontable','élastique','partielle'], e:'On ne peut pas les séparer sans abîmer une pièce ou la colle : la liaison est indémontable.'},
+    {q:'Une liaison faite avec une vis et un écrou est…', o:['indirecte et démontable','directe et indémontable','directe et démontable','indirecte et indémontable'], e:'La vis est un organe de liaison (indirecte), et on peut la dévisser (démontable).'},
+    {q:'Une porte tourne autour de ses charnières. La liaison entre la porte et le cadre est…', o:['partielle','totale','élastique','indémontable'], e:'Une liaison partielle permet un mouvement entre les pièces. Ici, la porte peut pivoter.'},
+    {q:'Un tiroir qui glisse dans un meuble est un exemple de guidage…', o:['en translation','en rotation','hélicoïdal','élastique'], e:'Le tiroir avance en ligne droite : c’est un guidage en translation.'},
+    {q:'Lequel est un système de TRANSMISSION du mouvement?', o:['Poulies et courroie','Pignon et crémaillère','Bielle et manivelle','Came et tige'], e:'Dans un système de transmission, le mouvement reste le même (rotation → rotation).'},
+    {q:'Lequel est un système de TRANSFORMATION du mouvement?', o:['Pignon et crémaillère','Engrenage','Roues dentées et chaîne','Roues de friction'], e:'Le pignon et crémaillère transforme une rotation en translation (et l’inverse).'},
+    {q:'Deux engrenages en contact direct tournent…', o:['en sens inverse','dans le même sens','toujours à la même vitesse','seulement dans un sens'], e:'Quand une roue dentée tourne dans le sens horaire, celle qu’elle entraîne tourne dans le sens antihoraire.'},
+    {q:'Avec des poulies et une courroie non croisée, les deux poulies tournent…', o:['dans le même sens','en sens inverse','en alternance','à la verticale'], e:'La courroie entraîne les deux poulies dans le même sens. Si on la croise, le sens s’inverse.'},
+    {q:'Sur un vélo, quel système transmet le mouvement du pédalier à la roue arrière?', o:['Roues dentées et chaîne','Engrenages','Roue et vis sans fin','Bielle et manivelle'], e:'La chaîne relie le plateau (roue dentée du pédalier) au pignon de la roue arrière.'},
+    {q:'Quelle est la particularité du système roue et vis sans fin?', o:['Il n’est pas réversible : la roue ne peut pas faire tourner la vis','Il augmente toujours la vitesse','Il transforme une rotation en translation','Il fonctionne sans contact'], e:'Seule la vis peut être menante. C’est pratique pour les mécanismes qui ne doivent pas reculer (ex. : mécaniques de guitare).'},
+    {q:'Une petite roue menante entraîne une grande roue menée. La vitesse de la roue menée…', o:['diminue','augmente','reste la même','devient nulle'], e:'La grande roue fait moins de tours que la petite : la vitesse diminue.'},
+    {q:'Quel système transforme la rotation d’un moteur en va-et-vient d’un piston?', o:['Bielle et manivelle','Poulies et courroie','Engrenage','Roue et vis sans fin'], e:'La manivelle tourne et la bielle pousse et tire le piston : rotation ↔ translation alternative.'},
+    {q:'Une corde qui retient un objet suspendu subit surtout…', o:['de la traction','de la compression','de la torsion','du cisaillement'], e:'La traction tend à étirer le matériau.'},
+    {q:'Les pattes d’une chaise sur laquelle on est assis subissent surtout…', o:['de la compression','de la traction','de la torsion','du cisaillement'], e:'La compression tend à écraser le matériau.'},
+    {q:'Des ciseaux qui coupent du papier exercent…', o:['du cisaillement','de la flexion','de la torsion','de la traction'], e:'Le cisaillement tend à couper le matériau en deux parties qui glissent l’une sur l’autre.'},
+    {q:'Quand on tourne un tournevis, sa tige subit…', o:['de la torsion','de la compression','de la flexion','du cisaillement'], e:'La torsion tend à tordre le matériau.'},
+    {q:'La capacité d’un matériau à reprendre sa forme après une déformation est…', o:['l’élasticité','la dureté','la ductilité','la malléabilité'], e:'Un élastique ou un ressort ont une grande élasticité.'},
+    {q:'La capacité d’un métal à être étiré en fil sans se briser est…', o:['la ductilité','la malléabilité','la dureté','la résilience'], e:'Le cuivre est très ductile : on en fait des fils électriques.'},
+    {q:'La capacité d’un matériau à résister aux chocs est…', o:['la résilience','la rigidité','la ductilité','l’étanchéité'], e:'Un casque de vélo doit être fait de matériaux résilients.'},
+    {q:'Un thermoplastique peut…', o:['être ramolli par la chaleur et remodelé plusieurs fois','être chauffé sans jamais changer de forme','conduire très bien l’électricité','rouiller au contact de l’eau'], e:'C’est pourquoi beaucoup de thermoplastiques sont recyclables.'},
+    {q:'Un alliage ferreux contient principalement…', o:['du fer','du cuivre','de l’aluminium','du plastique'], e:'L’acier et la fonte sont des alliages ferreux.'},
+    {q:'Dans un dessin technique, un trait interrompu (pointillé) représente…', o:['un contour caché','un contour visible','un axe de symétrie','une cote'], e:'Les contours visibles sont en trait fort; les axes sont en trait mixte.'},
+    {q:'Une échelle de 1:2 signifie que le dessin est…', o:['deux fois plus petit que l’objet réel','deux fois plus grand que l’objet réel','de la même taille que l’objet','dessiné sur deux feuilles'], e:'1 cm sur le dessin représente 2 cm en réalité : c’est une réduction.'},
+    {q:'En projection orthogonale, quelles sont les trois vues habituelles?', o:['Face, dessus et droite','Face, dos et dessous','Dessus, dessous et gauche','Isométrique, oblique et face'], e:'La vue de dessus est placée sous la vue de face, et la vue de droite à sa droite.'},
+    {q:'En perspective isométrique, les trois axes forment entre eux des angles de…', o:['120°','90°','45°','60°'], e:'Les arêtes verticales restent verticales et les deux autres axes sont inclinés à 30° de l’horizontale.'}
+  ]}
+];
+const LABFIN = { id:'lab', nom:'Le grand défi du labo', court:'Défi', fonction:'Révision : univers matériel et technologique', color:'#ffffff', part:'mix', node:[170,160], hp:8,
+  blurb:'Toutes les machines et toutes les solutions du labo se sont liguées. Le Dérégleur veut tout mélanger.',
+  ennemi:{nom:'Le Dérégleur', type:'supreme', pal:{a:'#1f3a4a',b:'#4fc3f7',o:'#06121a',h:'#ffcf5a'}},
+  intro:'Il mélange chimie, matière et mécanique. Montre que tu maîtrises les trois!',
+  fiche:[
+    '<b>Concentrations :</b> C = m ÷ V (g/L) · % m/v = g dans 100 mL · % m/m = g dans 100 g · % v/v = mL dans 100 mL. 1 % m/v = 10 g/L.',
+    '<b>Matière :</b> propriétés caractéristiques (masse volumique, points de fusion et d’ébullition, solubilité, tests chimiques), changements physiques et chimiques, mélanges et séparation.',
+    '<b>Technologie :</b> fonctions mécaniques, liaisons, guidage, transmission et transformation du mouvement, contraintes, propriétés des matériaux, langage graphique.',
+    '<b>Ce boss a 8 PV</b> et pose des questions des trois salles, dont des calculs.'
+  ],
+  q:[] };
+
+const ALL = [...SYS, FINAL, ...LAB, LABFIN]; // 0-7 corps · 8 boss du corps · 9-11 labo · 12 boss du labo
+const isFinal=i=>i===8||i===12;
+const campOf=i=>i>=9?'lab':'body';
+const CAMP={body:{idx:[0,1,2,3,4,5,6,7,8],fin:8,badges:SYS}, lab:{idx:[9,10,11,12],fin:12,badges:LAB}};
+const wName=i=>i===8?'Révision finale : le corps':i===12?'Révision finale : le labo':ALL[i].nom;
+const wTitle=i=>i===8?'Le cœur du corps':i===12?'Le grand défi du labo':ALL[i].nom;
+const wShort=i=>i===8?'CŒUR':i===12?'DÉFI':ALL[i].court;
+const BOSSY={supreme:42,molecule:32,engrenage:28};
 
 /* Décors des niveaux : ciel, décor de fond, sol, briques */
 const THEMES={
@@ -445,7 +630,11 @@ const THEMES={
   mus:{sky:['#ffd8cb','#ffbca9'], far:'#fff4e6', far2:'#e8d6c0', deco:'bones',   top:'#ff8a7a', mid:'#b8433c', dark:'#6a1a18', brick:'#cc5a50', mortar:'#6a1a18', hard:'#9a3530'},
   ner:{sky:['#241a5e','#34287f'], far:'#5a44b0', far2:'#4a3698', deco:'neurons', top:'#b494ff', mid:'#6a4fc0', dark:'#2e1f6a', brick:'#7f62d4', mortar:'#2e1f6a', hard:'#5a40a8'},
   rep:{sky:['#ffd8ee','#ffc2e2'], far:'#ffa3d2', far2:'#f080bc', deco:'cells',   top:'#ff8cc8', mid:'#c2477f', dark:'#6a1a44', brick:'#e06aa4', mortar:'#6a1a44', hard:'#a83a6e'},
-  fin:{sky:['#24082f','#3a0f48'], far:'#6a1a6a', far2:'#521452', deco:'mix',     top:'#ff4fa3', mid:'#5a1a6a', dark:'#250832', brick:'#7a2a8a', mortar:'#250832', hard:'#5a1a6a'}
+  fin:{sky:['#24082f','#3a0f48'], far:'#6a1a6a', far2:'#521452', deco:'mix',     top:'#ff4fa3', mid:'#5a1a6a', dark:'#250832', brick:'#7a2a8a', mortar:'#250832', hard:'#5a1a6a'},
+  con:{sky:['#d8f1fb','#bfe6f5'], far:'#9fd3e8', far2:'#7fbfd8', deco:'flasks',  top:'#e8f4f8', mid:'#8fa6b3', dark:'#43566a', brick:'#c7d6de', mortar:'#5d707c', hard:'#7f96a4'},
+  mat:{sky:['#e6f5d6','#cfeab5'], far:'#a8d880', far2:'#8cc460', deco:'atoms',   top:'#b9e08f', mid:'#6f9a48', dark:'#35541c', brick:'#8fbf5f', mortar:'#35541c', hard:'#5e8a36'},
+  tec:{sky:['#ffe8c7','#ffd59e'], far:'#e0b070', far2:'#c99550', deco:'gears',   top:'#c3c9d2', mid:'#7d8590', dark:'#3a3f48', brick:'#9aa1ab', mortar:'#3a3f48', hard:'#6b727c'},
+  lab:{sky:['#0f2230','#173447'], far:'#245066', far2:'#1d4054', deco:'mix',     top:'#4fc3f7', mid:'#2a4a5c', dark:'#0c1a24', brick:'#356178', mortar:'#0c1a24', hard:'#28485a'}
 };
 
 /* =========================================================
@@ -605,7 +794,7 @@ function drawHero(x,y,t,f){
 /* Globi en mode plateforme : boîte 14×20, (sx,sy) = coin haut-gauche à l’écran */
 function drawGlobi(sx,sy,t,p,flash){
   const cx=Math.round(sx+7), cy=Math.round(sy+9), face=p.face||1;
-  const OL=flash||'#24305e', BODY=flash||'#e4eafc', HI=flash||'#ffffff', NU=flash||'#7d4fc0', EYE=flash||'#14142b', FOOT=flash||'#3a2f6e', GOLD=flash||'#f8c537';
+  const sk=p.skin||{}, OL=flash||sk.OL||'#24305e', BODY=flash||sk.BODY||'#e4eafc', HI=flash||'#ffffff', NU=flash||sk.NU||'#7d4fc0', EYE=flash||'#14142b', FOOT=flash||sk.FOOT||'#3a2f6e', GOLD=flash||'#f8c537';
   const run=p.onGround && Math.abs(p.vx)>12, ph=run?Math.floor(t*12)%2:0;
   if(!p.onGround){ R(cx-7,sy+14,5,4,FOOT); R(cx+2,sy+15,5,4,FOOT); }
   else { R(cx-7+(ph?2:0),sy+16,6,4,FOOT); R(cx+1-(ph?2:0),sy+16,6,4,FOOT); }
@@ -694,6 +883,28 @@ const ENEMY={
     R(x-9,y-8,3,2,p.h);
     eyes(x-3,y-2,5,p); teeth(x-7,y+4,10,p);
   },
+  becher(x,y,t,p){
+    for(let i=0;i<4;i++){ const ph=(t*0.8+i*0.27)%1; ring(x-10+i*7, y-24-ph*18, 2, p.h); }
+    R(x-19,y-22,38,44,p.o); R(x-17,y-22,34,42,'#eaf6fb'); R(x-22,y-23,6,3,p.o); R(x+16,y-23,6,3,p.o);
+    const lv=Math.round(Math.sin(t*3)*2);
+    R(x-17,y-6+lv,34,26-lv,p.a); for(let i=0;i<34;i+=4) R(x-17+i,y-7+lv+((i/4)%2),4,1,p.h);
+    R(x-17,y+12,34,8,p.b); for(let k=0;k<4;k++) R(x+10,y-17+k*8,6,1,p.o); R(x-14,y-18,2,30,'#ffffff');
+    eyes(x-3,y+2,6,p); teeth(x-7,y+10,12,p);
+  },
+  molecule(x,y,t,p){
+    const rot=Math.sin(t)*0.25, A=[[0,0,12,p.a],[-22,-12,7,p.b],[22,-12,7,p.b],[0,22,8,p.h]];
+    const pts=A.map(([dx,dy,r,c])=>[x+dx*Math.cos(rot)-dy*Math.sin(rot), y+dx*Math.sin(rot)+dy*Math.cos(rot), r, c]);
+    for(let k=1;k<pts.length;k++){ for(const [ox,oy] of [[0,0],[1,0],[0,1]]) line(pts[0][0]+ox,pts[0][1]+oy,pts[k][0]+ox,pts[k][1]+oy,p.o); }
+    for(let k=pts.length-1;k>=0;k--){ const [px,py,r,c]=pts[k]; disc(px,py,r+1,p.o); disc(px,py,r,c); R(px-r/2,py-r/2,2,2,'#ffffff'); }
+    eyes(x-3,y-2,5,p); teeth(x-6,y+4,10,p);
+  },
+  engrenage(x,y,t,p){
+    const a0=t*1.2;
+    for(let k=0;k<12;k++){ const a=a0+k*Math.PI/6, tx=x+Math.cos(a)*22, ty=y+Math.sin(a)*22; R(tx-4,ty-4,9,9,p.o); R(tx-3,ty-3,7,7,p.a); }
+    disc(x,y,20,p.o); disc(x,y,19,p.a); disc(x,y,13,p.b); disc(x,y,12,p.a);
+    for(let k=0;k<6;k++){ const a=-a0+k*1.047; disc(x+Math.cos(a)*16,y+Math.sin(a)*16,2,p.b); }
+    R(x-9,y-14,4,2,p.h); eyes(x-3,y-3,6,p); teeth(x-7,y+5,12,p);
+  },
   supreme(x,y,t,p){
     const hue=(t*50)%360;
     for(let k=0;k<20;k++){ const a=-t*0.5+k*Math.PI/10, r=36+Math.sin(t*3+k)*2; R(x+Math.cos(a)*r,y+Math.sin(a)*r*0.9,2,2,`hsl(${(hue+k*18)%360},90%,62%)`); }
@@ -714,7 +925,7 @@ function drawMinion(e,sx,sy,t,pal,type){
   sx=Math.round(sx); sy=Math.round(sy);
   if(e.squash>0){ R(sx,sy+8,14,4,pal.o); R(sx+1,sy+9,12,2,pal.a); R(sx+3,sy+9,2,1,'#fff'); R(sx+9,sy+9,2,1,'#fff'); return; }
   const cx=sx+7, cy=sy+5, f=Math.floor(t*8+e.x*0.01)%2, dir=e.vx<0?-1:1;
-  if(type==='virus'||type==='supreme'){ for(let k=0;k<7;k++){ const a=k*0.9+t*2; line(cx+Math.cos(a)*5,cy+Math.sin(a)*5,cx+Math.cos(a)*8,cy+Math.sin(a)*8,pal.o); } }
+  if(type==='virus'||type==='supreme'||type==='engrenage'){ for(let k=0;k<7;k++){ const a=k*0.9+t*2; line(cx+Math.cos(a)*5,cy+Math.sin(a)*5,cx+Math.cos(a)*8,cy+Math.sin(a)*8,pal.o); } }
   if(type==='bacille'){ for(let i=0;i<5;i++) R(cx-dir*(8+i),cy+Math.sin(t*12+i)*1.5,1,1,pal.o); }
   R(sx+2+f,sy+10,4,2,pal.o); R(sx+8-f,sy+10,4,2,pal.o);
   if(type==='bacille'){ ell(cx,cy,8,6,pal.o); ell(cx,cy,7,5,pal.a); }
@@ -790,7 +1001,7 @@ const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floo
 
 function buildLevel(idx,opt={}){
   const z=ALL[idx], rnd=mulberry32(4242+idx*7919+(opt.seed||0)), ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
-  const nQ=opt.demo?4:(idx===8?6:5), MAIN=opt.demo?180:24+nQ*19, AR=20, LW=MAIN+AR;
+  const nQ=opt.demo?4:(isFinal(idx)?6:5), MAIN=opt.demo?180:24+nQ*19, AR=20, LW=MAIN+AR;
   const h=new Array(LW).fill(10), busy=new Array(LW).fill(false);
   const stairs=[], pits=[];
   let x=0, cur=10;
@@ -837,7 +1048,7 @@ function buildLevel(idx,opt={}){
   for(let k=0;k<4;k++){ const c=ri(14,MAIN-8); if(okCol(c)&&okCol(c+2)) for(let i=0;i<3;i++) atps.push({x:(c+i)*TS+8,y:(h[c]-1)*TS+8}); }
   // petits pathogènes
   if(!opt.demo){
-    const n=idx===8?8:6;
+    const n=isFinal(idx)?8:6;
     for(let tries=0;tries<120&&enemies.length<n;tries++){
       const c=ri(20,MAIN-8);
       if(h[c]>=99||grid[h[c]-1][c]!=='.'||h[c-1]!==h[c]) continue;
@@ -850,10 +1061,17 @@ function buildLevel(idx,opt={}){
   for(let r=0;r<10;r++) grid[r][LW-1]='P';
   const sup=z.ennemi.type==='supreme';
   const p={x:2*TS+1,y:h[2]*TS-20,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,inv:0,jumping:false};
-  const pool = idx===8 ? shuffle(FINAL.q.concat(SYS.map(s=>s.q[Math.floor(Math.random()*s.q.length)]))) : shuffle(z.q);
+  const pool = opt.demo ? [] : buildPool(idx);
   return {idx,z,th:THEMES[z.id],grid,h,W:LW,MAIN,arenaX:MAIN*TS,enemies,atps,cps,nQ:placed,qDone:0,atp:0,
     p,respawn:{x:p.x,y:p.y},cam:0,mode:'prep',bumps:{},fx:[],pool,pi:0,streak:0,n:0,medal:null,
-    boss:{hp:z.hp||5,max:z.hp||5,started:false,dead:false,dying:0,x:(MAIN+15)*TS,y:10*TS-(sup?42:24)}};
+    boss:{hp:z.hp||5,max:z.hp||5,started:false,dead:false,dying:0,x:(MAIN+15)*TS,y:10*TS-(BOSSY[z.ennemi.type]||24)}};
+}
+function buildPool(idx){
+  const z=ALL[idx];
+  if(idx===8) return shuffle(FINAL.q.concat(SYS.map(s=>s.q[Math.floor(Math.random()*s.q.length)])));
+  if(idx===12){ const a=[]; LAB.forEach(l=>{ a.push(...shuffle(l.q).slice(0,3)); (l.gens||[]).forEach(g=>a.push(g(Math.random))); }); return shuffle(a); }
+  const a=z.q.slice(); if(z.gens) for(let k=0;k<z.gens.length*2;k++) a.push(z.gens[k%z.gens.length](Math.random));
+  return shuffle(a);
 }
 
 function drawTile(k,sx,sy,th,c,r,t){
@@ -890,18 +1108,21 @@ function drawSky(th,cam,t){
       case 'bones': { const cx=X+50; R(cx-4,72,9,80,F2); disc(cx-5,72,6,F2); disc(cx+5,72,6,F2); R(cx-3,72,7,80,F); disc(cx-5,72,5,F); disc(cx+5,72,5,F); break; }
       case 'neurons': { const cx=X+50, cy=96+(s%3)*10; [0.3,1.2,2.2,3.3,4.4,5.4].forEach(a=>{ line(cx,cy,cx+Math.cos(a+s)*24,cy+Math.sin(a+s)*20,F); }); line(cx,cy,cx+40,cy+46,F2); disc(cx,cy,7,F); disc(cx,cy,4,F2); break; }
       case 'cells': { const cx=X+50, cy=104+(s%3)*8; disc(cx,cy,18,F); disc(cx,cy,15,F2); disc(cx+4,cy-4,5,F); break; }
+      case 'flasks': { const cx=X+40; R(X,118,P,3,F2); R(cx-8,96,16,22,F2); R(cx-7,97,14,21,th.sky[0]); R(cx-7,106,14,12,F); for(let k=0;k<16;k++){ const hw=2+Math.round(k*0.55); R(cx+34-hw,100+k,hw*2,1,F2); } R(cx+32,94,4,6,F2); R(cx+28,108,12,8,F); break; }
+      case 'atoms': { const cx=X+50, cy=96+(s%3)*10; disc(cx,cy,4,F2); [0,1.05,2.1].forEach((ang,j)=>{ for(let a=0;a<6.28;a+=0.14){ const ex=Math.cos(a)*18, ey=Math.sin(a)*6; R(cx+ex*Math.cos(ang)-ey*Math.sin(ang), cy+ex*Math.sin(ang)+ey*Math.cos(ang),1,1,F2); } const a=t*2+j*2, ex=Math.cos(a)*18, ey=Math.sin(a)*6; disc(cx+ex*Math.cos(ang)-ey*Math.sin(ang), cy+ex*Math.sin(ang)+ey*Math.cos(ang),2,F); }); break; }
+      case 'gears': { [[X+40,104,16,1],[X+70,118,11,-1.45]].forEach(([gx,gy,gr,sp])=>{ const a0=t*0.6*sp; for(let k=0;k<10;k++){ const a=a0+k*0.628; R(gx+Math.cos(a)*(gr+2)-2,gy+Math.sin(a)*(gr+2)-2,5,5,F2); } disc(gx,gy,gr,F2); disc(gx,gy,gr-3,F); disc(gx,gy,4,th.sky[1]); }); break; }
       case 'mix': { const cx=X+50, cy=100+(s%3)*8; ring(cx,cy,16,`hsl(${(t*40+i*60)%360},70%,45%)`); ring(cx,cy,10,`hsl(${(t*40+i*60+120)%360},70%,45%)`); break; }
     }
   }
 }
-function drawTiles(L,cam,now,t){
+function drawTiles(L,cam,now,t,pl){
   const c0=Math.max(0,Math.floor(cam/TS)), c1=Math.min(L.W-1,c0+21);
   for(let c=c0;c<=c1;c++) for(let r=1;r<ROWS;r++){
     const k=L.grid[r][c]; if(k==='.') continue;
     let sx=c*TS-cam, sy=r*TS-VY;
     const key=c+','+r, b=L.bumps[key];
     if(b){ const p=(now-b)/220; if(p<1) sy-=Math.round(Math.sin(p*Math.PI)*5); else delete L.bumps[key]; }
-    drawTile(k,sx,sy,L.th,c,r,t);
+    if(pl && (k==='A'||k==='B'||k==='C')) drawAnsTile(k,sx,sy,L.rowAt[key],pl.id); else drawTile(k,sx,sy,L.th,c,r,t);
   }
 }
 
@@ -909,19 +1130,22 @@ function drawTiles(L,cam,now,t){
    ÉTAT DU JEU
    ========================================================= */
 const SAVE_KEY='globi-odyssee-v1';
-function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,atp:0,best:{}}; }
+function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,labWon:false,atp:0,best:{},raceBest:{},camp:'body'}; }
 function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.level) return Object.assign(fresh(),s); }catch(e){} return null; }
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
 let G=loadSave()||fresh();
 const maxHearts=()=>3; // cœurs au départ de chaque niveau (on peut en gagner plus)
 const xpNeed=()=>30+G.level*20;
 let hearts=maxHearts();
-function isBeaten(i){ return i===8 ? G.finalWon : G.beaten.includes(ALL[i].id); }
-function isUnlocked(i){ if(i===8) return SYS.every(z=>G.beaten.includes(z.id)); return true; }
-function nextIdx(){ for(let i=0;i<9;i++) if(isUnlocked(i)&&!isBeaten(i)) return i; return 8; }
+function isBeaten(i){ return i===8 ? G.finalWon : i===12 ? !!G.labWon : G.beaten.includes(ALL[i].id); }
+function isUnlocked(i){ if(i===8) return SYS.every(z=>G.beaten.includes(z.id)); if(i===12) return LAB.every(z=>G.beaten.includes(z.id)); return true; }
+const camp=()=>CAMP[G.camp==='lab'?'lab':'body'];
+function nextIdx(){ const c=camp(); for(const i of c.idx) if(isUnlocked(i)&&!isBeaten(i)) return i; return c.fin; }
+const badgeCount=list=>list.filter(z=>G.beaten.includes(z.id)).length;
+function labPct(){ return Math.round((badgeCount(LAB)+(G.labWon?1:0))/4*100); }
 function healPct(){ return G.finalWon?100:Math.round(G.beaten.length/9*100); }
 function addXP(n){ G.xp+=n; let up=false; while(G.xp>=xpNeed()){ G.xp-=xpNeed(); G.level++; up=true; } return up; }
-const chipColor=i=>i===8?'#ff4fa3':ALL[i].color;
+const chipColor=i=>isFinal(i)?'#ff4fa3':ALL[i].color;
 
 let scene='title', sel=0, LV=null, Q=null, DLG=null, shakeUntil=0, DEMO=null, demoCam=0;
 const mp={x:153,y:84};
@@ -944,7 +1168,7 @@ function updateHUD(){
   $('#lvl').textContent='NIV '+G.level;
   $('#xpbar').style.width=Math.round(G.xp/xpNeed()*100)+'%';
   $('#vit').innerHTML=ORANGE+'<span>VIT. C ×'+G.vit+'</span>';
-  $('#bdg').innerHTML=MEDAL+'<span>'+G.beaten.length+'/8</span>';
+  const bl=camp().badges; $('#bdg').innerHTML=MEDAL+'<span>'+badgeCount(bl)+'/'+bl.length+'</span>';
 }
 function shakeHearts(){ const h=$('#hearts'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake'); }
 function updateECard(){
@@ -959,7 +1183,7 @@ function overlays(){
   $('#logo').hidden=scene!=='title';
   $('#tag').hidden=scene!=='prep';
   $('#ecard').hidden=!(scene==='level' && LV && LV.boss.started && !LV.boss.dead);
-  $('#hud').hidden=(scene==='title'||scene==='intro');
+  $('#hud').hidden=(scene==='title'||scene==='intro'||scene==='race'||scene==='racemenu');
 }
 function setPanel(html,focusSel){
   panel.innerHTML=html;
@@ -987,17 +1211,23 @@ function showDlg(){
    SCÈNES
    ========================================================= */
 function toTitle(){
-  scene='title'; LV=null; overlays(); A.play('title'); initParts('bubble',10);
-  const s=loadSave();
-  setPanel(`<p class="say">Le corps de Max est envahi par des pathogènes. Un seul globule blanc peut le sauver : toi.</p>
-    <div class="row">${s?`<button class="btn" data-act="cont">Continuer ▶</button>`:''}<button class="btn ${s?'ghost':''}" data-act="newGame">Nouvelle partie ▶</button></div>
-    <p class="hint">${s?`Sauvegarde : niveau ${s.level} · ${s.beaten.length}/8 insignes${s.finalWon?' · corps guéri':''}`:'8 niveaux de plateforme, un par système du corps humain, et un boss final. Active le son!'}</p>`);
+  if(RC && RC.mode==='online') netClose();
+  RC=null; scene='title'; LV=null; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('title'); initParts('bubble',10);
+  setPanel(`<p class="say">Choisis ton aventure!</p>
+    <div class="modes">
+      <button class="btn mode" data-act="goBody"><b>Le corps humain</b><span>8 systèmes et un boss final · ${badgeCount(SYS)}/8 insignes${G.finalWon?' · corps guéri':''}</span></button>
+      <button class="btn mode" data-act="goLab"><b>Labo et atelier</b><span>Concentrations, univers matériel et univers technologique · ${badgeCount(LAB)}/3 insignes${G.labWon?' · labo sauvé':''}</span></button>
+      <button class="btn mode" data-act="raceMenu"><b>Course multijoueur</b><span>À 2 sur le même appareil, en ligne ou contre la montre</span></button>
+    </div>
+    <div class="row between"><span class="hint">Niveau ${G.level} · progression sauvegardée sur cet appareil. Active le son!</span><button class="btn small ghost" data-act="newGame">Effacer ma progression</button></div>`,'[data-act=goBody]');
 }
 function confirmNew(){
-  setPanel(`<h2>Recommencer?</h2><p>Ta progression actuelle (niveau, insignes, vitamines, ATP) sera effacée.</p><div class="row"><button class="btn ghost" data-act="${scene==='title'?'title':'end'}">Annuler</button><button class="btn" data-act="startNew">Oui, recommencer</button></div>`,'[data-act=startNew]');
+  setPanel(`<h2>Effacer ta progression?</h2><p>Ton niveau, tes insignes, tes vitamines et tes records seront effacés sur cet appareil.</p><div class="row"><button class="btn ghost" data-act="title">Annuler</button><button class="btn" data-act="startNew">Oui, tout effacer</button></div>`,'[data-act=title]');
 }
-function startNew(){
-  G=fresh(); save(); hearts=maxHearts(); updateHUD();
+function startNew(){ G=fresh(); save(); hearts=maxHearts(); updateHUD(); toTitle(); }
+function goBody(){
+  G.camp='body'; save(); updateHUD();
+  if(G.introSeen || G.total || G.beaten.some(id=>SYS.some(z=>z.id===id))){ toMap(); return; }
   scene='intro'; overlays();
   dialog([
     'Alerte! Le corps de Max, 15 ans, est envahi par des pathogènes.',
@@ -1005,31 +1235,42 @@ function startNew(){
     'Chaque système du corps est un niveau. Frappe les blocs du savoir par en dessous pour répondre aux questions.',
     'Saute sur les petits pathogènes pour les écraser, ramasse l’ATP pour battre ton record, et affronte le gardien au bout du niveau.',
     'Gagne les 8 insignes pour atteindre le Pathogène Suprême. Max compte sur toi!'
-  ],()=>toMap(0),'Dre Cortex');
+  ],()=>{ G.introSeen=true; save(); toMap(0); },'Dre Cortex');
+}
+function goLab(){
+  G.camp='lab'; save(); updateHUD();
+  if(G.labIntro){ toMap(); return; }
+  scene='intro'; overlays();
+  dialog([
+    'Bravo Globi! Pendant que tu protégeais Max, c’est la pagaille à son école.',
+    'Au labo de chimie, les solutions sont mal préparées. Dans la salle de sciences, la matière fait n’importe quoi. À l’atelier, les machines tournent à l’envers.',
+    'Chaque salle est un niveau. Frappe les blocs du savoir, écrase les petits dérègleurs et affronte le gardien de la salle.',
+    'Avec les 3 insignes, tu affronteras le Dérégleur dans le grand défi du labo. Garde ta calculatrice près de toi : il y aura des concentrations à calculer!'
+  ],()=>{ G.labIntro=true; save(); toMap(9); },'Dre Cortex');
 }
 function toMap(i){
-  scene='map'; LV=null; Q=null; DLG=null; overlays(); A.play('map'); hearts=maxHearts(); updateHUD();
-  sel=(i!=null && isUnlocked(i))?i:nextIdx();
+  scene='map'; LV=null; Q=null; DLG=null; RC=null; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('map'); hearts=maxHearts(); updateHUD();
+  sel=(i!=null && isUnlocked(i) && campOf(i)===(G.camp==='lab'?'lab':'body'))?i:nextIdx();
   mp.x=ALL[sel].node[0]; mp.y=ALL[sel].node[1];
   initParts('mapcell',14); showMapPanel();
 }
 function showMapPanel(){
   const z=ALL[sel], won=isBeaten(sel);
-  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${sel===8?'Le Pathogène Suprême':z.nom}</h2></div>
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${isFinal(sel)?z.ennemi.nom:z.nom}</h2></div>
     <p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b> · ${won?'<span class="won">★ Insigne obtenu</span>':'À conquérir'}${G.best&&G.best[z.id]?` · Record d’ATP : <b>${G.best[z.id]}</b>`:''}</p>
     <p>${z.blurb}</p>
     <div class="row between"><div class="row"><button class="btn" data-act="explore">${won?'Rejouer le niveau ▶':'Entrer dans le niveau ▶'}</button><button class="btn ghost" data-act="codex">Codex</button></div>
     <div class="row"><button class="btn small ghost" data-act="prevZone" aria-label="Zone précédente">◀</button><button class="btn small ghost" data-act="nextZone" aria-label="Zone suivante">▶</button></div></div>`,'[data-act=explore]');
 }
 function moveSel(d){
-  const un=ALL.map((_,i)=>i).filter(isUnlocked);
+  const un=camp().idx.filter(isUnlocked);
   let k=un.indexOf(sel); k=(k+d+un.length)%un.length;
   if(un[k]!==sel){ sel=un[k]; A.sfx('select'); showMapPanel(); }
 }
 function prep(){
   LV=buildLevel(sel); scene='prep'; overlays(); initParts(ALL[sel].part,12);
   const z=ALL[sel];
-  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${sel===8?'Révision finale':z.nom}</h2></div>
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(sel)}"></span><h2>${wName(sel)}</h2></div>
     ${ficheHTML(z)}
     <p class="hint">Départ avec 3 cœurs · ${LV.nQ} blocs du savoir dans ce niveau · gardien : ${z.ennemi.nom} (${LV.boss.max} PV)</p>
     <div class="row"><button class="btn ghost" data-act="map">◀ Carte</button><button class="btn" data-act="go">Commencer le niveau ▶</button></div>`,'[data-act=go]');
@@ -1045,7 +1286,7 @@ function startLevel(rebuild){
 }
 function showPlayPanel(){
   const L=LV, z=L.z, walk=L.mode==='walk';
-  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(L.idx)}"></span><h2>${L.idx===8?'Le cœur du corps':z.nom}</h2></div>
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(L.idx)}"></span><h2>${wTitle(L.idx)}</h2></div>
     <p>${walk?`${z.ennemi.nom} est vaincu! Va chercher l’insigne qui flotte au bout du niveau.`:`Frappe les <b class="gold">blocs du savoir</b> (ceux avec une ampoule) par en dessous pour répondre aux questions. Saute sur les petits pathogènes pour les écraser. ${z.ennemi.nom} t’attend au bout du niveau.`}</p>
     <p class="hint">Clavier : ← → bouger · Espace ou ↑ sauter · Maj courir. Écran tactile : croix, A pour sauter, B pour courir. Bonne réponse : +1 cœur (3 au maximum). Ramasse l’ATP pour battre ton record. Les drapeaux verts sont des points de contrôle.</p>
     <div class="row"><button class="btn small" data-act="vitamin" ${G.vit<1||hearts>=maxHearts()?'disabled':''}>Vitamine C ×${G.vit}</button><button class="btn small ghost" data-act="fiche">Fiche du savoir</button><button class="btn small ghost" data-act="quit">Carte</button></div>`,null);
@@ -1071,8 +1312,8 @@ function bossIntro(){
   const L=LV; L.boss.started=true; L.mode='bossintro'; L.p.vx=0;
   L.enemies=L.enemies.filter(e=>e.x<L.arenaX-40);
   for(const k in keys) keys[k]=false;
-  A.play(L.idx===8?'boss':'battle'); overlays(); updateECard();
-  dialog([L.idx===8?`Le ${L.z.ennemi.nom} se dresse devant toi!`:`${L.z.ennemi.nom} bloque la sortie!`, L.z.intro], ()=>bossQuestion());
+  A.play(isFinal(L.idx)?'boss':'battle'); overlays(); updateECard();
+  dialog([isFinal(L.idx)?`Le ${L.z.ennemi.nom} se dresse devant toi!`:`${L.z.ennemi.nom} bloque la sortie!`, L.z.intro], ()=>bossQuestion());
 }
 function bossQuestion(){ const L=LV; L.mode='boss'; L.n++; Q={mode:'boss',cur:nextQ(),answered:false,t0:performance.now()}; renderQuestion(); }
 
@@ -1157,20 +1398,20 @@ function bossDown(){
   overlays(); showPlayPanel(); try{ cv.focus({preventScroll:true}); }catch(e){}
 }
 function levelClear(){
-  const L=LV, z=L.z, fin=L.idx===8, first=!fin && !G.beaten.includes(z.id);
+  const L=LV, z=L.z, fin=isFinal(L.idx), cp=CAMP[campOf(L.idx)], first=!fin && !G.beaten.includes(z.id);
   L.mode='done'; A.sfx('level'); A.play('win');
   G.best=G.best||{}; const rec=L.atp>(G.best[z.id]||0); if(rec) G.best[z.id]=L.atp;
   if(first){ G.beaten.push(z.id); G.vit++; }
-  if(fin) G.finalWon=true;
+  if(fin){ if(L.idx===8) G.finalWon=true; else G.labWon=true; }
   save(); updateHUD();
-  const all=SYS.every(s=>G.beaten.includes(s.id));
+  const all=cp.badges.every(s=>G.beaten.includes(s.id)), left=cp.badges.length-badgeCount(cp.badges), bossName=ALL[cp.fin].ennemi.nom;
   let html=`<h2>Niveau terminé!</h2><p>${z.ennemi.nom} est vaincu. Blocs du savoir : ${L.qDone} / ${L.nQ} · ATP ramassé : ${L.atp}${rec?' · <b class="gold">nouveau record!</b>':` (record : ${G.best[z.id]})`}.</p>`;
-  if(fin){ html+=`<p>Le corps de Max retrouve son équilibre…</p><div class="row end"><button class="btn" data-act="ending">Voir la fin ▶</button></div>`; }
+  if(fin){ html+=`<p>${L.idx===8?'Le corps de Max retrouve son équilibre…':'Le labo et l’atelier sont de nouveau en ordre…'}</p><div class="row end"><button class="btn" data-act="ending" data-arg="${campOf(L.idx)}">Voir la fin ▶</button></div>`; }
   else{
     if(first) html+=`<div class="reward"><span class="medal" style="--c:${z.color}"></span><div><b class="gold">Insigne : ${z.nom}</b><br>+1 Vitamine C ajoutée à ton sac.</div></div>`;
     else html+=`<p>Entraînement réussi : ton XP a augmenté.</p>`;
-    if(first && all) html+=`<p class="warn">Alerte! Le Pathogène Suprême s’est réveillé au cœur du corps de Max…</p>`;
-    else if(first) html+=`<p>Encore <b class="gold">${8-G.beaten.length} insigne${8-G.beaten.length>1?'s':''}</b> à gagner avant d’affronter le Pathogène Suprême.</p>`;
+    if(first && all) html+=`<p class="warn">Alerte! ${bossName} s’est réveillé${L.idx<8?' au cœur du corps de Max':' dans le grand défi du labo'}…</p>`;
+    else if(first) html+=`<p>Encore <b class="gold">${left} insigne${left>1?'s':''}</b> à gagner avant d’affronter ${bossName}.</p>`;
     html+=`<div class="row end"><button class="btn" data-act="mapNext">Retour à la carte ▶</button></div>`;
   }
   setPanel(html);
@@ -1193,15 +1434,17 @@ function retryBoss(){
   const L=LV, b=L.boss; hearts=maxHearts(); updateHUD();
   b.hp=b.max; b.dying=0; b.dead=false; L.streak=0; L.n=0; L.fx=[]; L.mode='bossintro';
   L.p.x=L.arenaX+40; L.p.y=10*TS-20; L.p.vx=0; L.p.vy=0; L.p.inv=0;
-  overlays(); updateECard(); A.play(L.idx===8?'boss':'battle');
+  overlays(); updateECard(); A.play(isFinal(L.idx)?'boss':'battle');
   dialog([`${L.z.ennemi.nom} est de retour à pleine forme. Concentre-toi!`],()=>bossQuestion());
 }
-function ending(){
+let endCamp='body';
+function ending(c){
+  endCamp=c==='lab'?'lab':'body';
   scene='end'; LV=null; overlays(); A.play('title'); hearts=maxHearts(); updateHUD(); fireworks=[];
-  const pct=G.total?Math.round(G.correct/G.total*100):0;
-  setPanel(`<h2>Max est guéri!</h2><p>Grâce à toi, les 9 gardiens sont vaincus. Tous les systèmes du corps fonctionnent de nouveau ensemble.</p>
+  const pct=G.total?Math.round(G.correct/G.total*100):0, lab=endCamp==='lab';
+  setPanel(`<h2>${lab?'Le labo est sauvé!':'Max est guéri!'}</h2><p>${lab?'Grâce à toi, les solutions sont bien préparées, la matière se comporte normalement et les machines tournent dans le bon sens.':'Grâce à toi, les 9 gardiens sont vaincus. Tous les systèmes du corps fonctionnent de nouveau ensemble.'}</p>
     <div class="stats"><div class="stat">Niveau<b>${G.level}</b></div><div class="stat">Bonnes réponses<b>${G.correct} / ${G.total}</b></div><div class="stat">Précision<b>${pct} %</b></div><div class="stat">ATP ramassé<b>${G.atp}</b></div></div>
-    <div class="row"><button class="btn" data-act="map">Carte (entraînement libre)</button><button class="btn ghost" data-act="newGame">Nouvelle partie</button></div>`);
+    <div class="row"><button class="btn" data-act="map">Carte (entraînement libre)</button><button class="btn ghost" data-act="home">Accueil</button></div>`);
 }
 
 /* =========================================================
@@ -1334,7 +1577,7 @@ function drawLevel(L,t,now,dt){
   const night=L.th.deco==='neurons'||L.th.deco==='mix';
   R(0,0,W,13,night?'rgba(0,0,0,.35)':'rgba(10,20,60,.28)');
   drawATP(8,6,t); txt('×'+String(L.atp).padStart(2,'0'),14,3,'#ffffff',8,'left',FONT_HUD);
-  txt((L.idx===8?'CŒUR':L.z.court).toUpperCase(),160,3,'#ffffff',8,'center',FONT_HUD);
+  txt(wShort(L.idx).toUpperCase(),160,3,'#ffffff',8,'center',FONT_HUD);
   txt('SAVOIR '+L.qDone+'/'+L.nQ,316,3,'#ffffff',8,'right',FONT_HUD);
   if(!modal.hidden && scene==='level'){ R(0,0,W,H,'rgba(0,0,0,.45)'); txt('PAUSE',160,82,'#ffffff',16,'center',FONT_HUD); }
 }
@@ -1349,7 +1592,51 @@ function bodyShape(c,g){
   R(141-g,118,16+2*g,50,c); R(163-g,118,16+2*g,50,c);
   R(136-g,166-g,21+2*g,6+2*g,c); R(163-g,166-g,21+2*g,6+2*g,c);
 }
-function drawMap(t,now,dt){
+const LEG_LAB=[{h:'LABO ET ATELIER',y:10},{i:9,y:24},{i:10,y:36},{i:11,y:48},{h:'RÉVISION',y:70},{i:12,y:82}];
+function drawMap(t,now,dt){ if(G.camp==='lab') drawLabMap(t,now,dt); else drawBodyMap(t,now,dt); }
+function roomIcon(i,x,y,t){
+  if(i===9){ R(x,y,9,11,'#0d2f4a'); R(x+1,y,7,10,'#eaf6fb'); R(x+1,y+5,7,5,'#4fc3f7'); }
+  else if(i===10){ disc(x+5,y+5,2,'#35541c'); ring(x+5,y+5,5,'#35541c'); R(x+5+Math.cos(t*3)*5,y+5+Math.sin(t*3)*5,2,2,'#5a8f2a'); }
+  else if(i===11){ const a0=t; for(let k=0;k<8;k++){ const a=a0+k*0.785; R(x+5+Math.cos(a)*6-1,y+5+Math.sin(a)*6-1,3,3,'#3a3f48'); } disc(x+5,y+5,5,'#3a3f48'); disc(x+5,y+5,2,'#e9eef3'); }
+  else star(x+3,y+3,'#c0482a');
+}
+function drawLabMap(t,now,dt){
+  R(0,0,W,H,'#2b3a4a'); for(let y=0;y<H;y+=12) for(let x=(y/12)%2*6;x<W;x+=12) R(x,y,6,6,'#314356');
+  drawParts(dt,t);
+  R(2,4,102,172,'rgba(10,20,60,.6)'); R(208,4,110,172,'rgba(10,20,60,.6)');
+  R(166,24,8,136,'#55697d');
+  const ROOMS=[[9,'LABO DE CHIMIE'],[10,'SALLE DE SCIENCES'],[11,'ATELIER TECHNO'],[12,'GRAND DÉFI']];
+  ROOMS.forEach(([i,lab])=>{ const y=ALL[i].node[1], un=isUnlocked(i); R(108,y-21,96,34,'#14202b'); R(109,y-20,94,32,un?'#e9eef3':'#8a96a3'); R(109,y-20,94,4,isFinal(i)?'#ff4fa3':ALL[i].color);
+    ctx.font='600 6px '+FONT_PX; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#1d2733'; ctx.fillText(lab,112,y-14); roomIcon(i,116,y-4,t); });
+  for(let k=0;k<3;k++){ const a=ALL[9+k].node, b=ALL[10+k].node; for(let y=a[1]+8;y<b[1]-8;y+=3) R(a[0],y,1,1,isBeaten(9+k)?'#f8c537':'#9fb0c0'); }
+  CAMP.lab.idx.forEach(i=>{ const [x,y]=ALL[i].node, un=isUnlocked(i);
+    if(!un){ disc(x,y,5,'#0b0f2a'); disc(x,y,4,'#2a3366'); R(x-1,y-1,3,3,'#46508a'); return; }
+    if(i===sel) ring(x,y,8+Math.round(1+Math.sin(t*6)),'#14202b');
+    disc(x,y,6,'#0b0f2a'); disc(x,y,5,isFinal(i)?`hsl(${(t*80)%360},85%,55%)`:ALL[i].color); R(x-2,y-3,2,2,'#ffffff');
+    if(isBeaten(i)) star(x+5,y-12,'#f8c537'); });
+  const [tx,ty]=ALL[sel].node; mp.x+=(tx-mp.x)*Math.min(1,dt*9); mp.y+=(ty-mp.y)*Math.min(1,dt*9);
+  miniGlobi(mp.x-12,mp.y+2,t);
+  LEG_LAB.forEach(l=>{
+    if(l.h){ txt(l.h,6,l.y,'#f8c537',7); return; }
+    const z=ALL[l.i], un=isUnlocked(l.i), nm=(isFinal(l.i)&&!un)?'???':z.court;
+    if(l.i===sel){ R(3,l.y-1,98,10,'#25347a'); R(5,l.y+2,2,1,'#fff'); R(5,l.y+3,3,1,'#fff'); R(5,l.y+4,2,1,'#fff'); }
+    R(11,l.y+1,6,6,un?chipColor(l.i):'#2a3366');
+    txt(nm,21,l.y-1,l.i===sel?'#ffffff':un?'#d6dcff':'#6a74b0',7);
+    if(isBeaten(l.i)) star(92,l.y+1,'#f8c537');
+  });
+  txt('INSIGNES',214,8,'#f8c537',7);
+  LAB.forEach((z,k)=>{ const cx=230+k*30, cy=34;
+    if(G.beaten.includes(z.id)){ disc(cx,cy,10,'#7a5a10'); disc(cx,cy,9,'#f8c537'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#ffffff'); }
+    else { disc(cx,cy,9,'#0b0f2a'); disc(cx,cy,8,'#1a2456'); } });
+  const nx=nextIdx();
+  txt('PROCHAIN GARDIEN',214,62,'#aab4ee',6);
+  txt(G.labWon?'Aucun : labo sauvé!':ALL[nx].ennemi.nom,214,71,'#ffffff',8);
+  txt('LABO EN ORDRE',214,100,'#aab4ee',6);
+  const pc=labPct(); R(214,112,96,10,'#05112a'); R(215,113,94*pc/100,8,pc>=100?'#7ff0a4':'#4fc3f7');
+  txt(pc+' %',214,128,pc>=100?'#7ff0a4':'#ffffff',8);
+  txt('Calculatrice permise!',214,150,'#ffcf5a',6);
+}
+function drawBodyMap(t,now,dt){
   R(0,0,W,H,'#6aa6ff'); R(0,120,W,60,'#5b97f2');
   const off=t*6; for(let i=-1;i<4;i++) drawCloud(((i*130-off)%(W+130)+W+130)%(W+130)-60, 14+((i+4)%3)*16);
   drawParts(dt,t);
@@ -1365,7 +1652,7 @@ function drawMap(t,now,dt){
     const col=isBeaten(i)?'#f8c537':'#3a4a90';
     for(let k=1;k<n;k+=2) R(ax+(bx-ax)*k/n,ay+(by-ay)*k/n,1,1,col);
   }
-  ALL.forEach((z,i)=>{
+  ALL.slice(0,9).forEach((z,i)=>{
     const [x,y]=z.node, un=isUnlocked(i);
     if(!un){ disc(x,y,5,'#0b0f2a'); disc(x,y,4,'#2a3366'); R(x-1,y-1,3,3,'#46508a'); return; }
     if(i===sel) ring(x,y,8+Math.round(1+Math.sin(t*6)),'#ffffff');
@@ -1420,7 +1707,7 @@ function drawEnding(t,now,dt){
   if(now-lastFw>600){ lastFw=now; fireworks.push({x:40+Math.random()*240,y:20+Math.random()*70,t0:now,c:SYS[Math.floor(Math.random()*8)].color}); }
   fireworks=fireworks.filter(f=>now-f.t0<1200);
   fireworks.forEach(f=>{ const p=(now-f.t0)/1200; for(let k=0;k<14;k++){ const a=k*0.449, r=p*30; R(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r+p*p*14,2,2,f.c); } });
-  SYS.forEach((z,k)=>{ const a=t*0.8+k*0.785, cx=160+Math.cos(a)*62, cy=98+Math.sin(a)*34; disc(cx,cy,8,'#7a5a10'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#fff'); });
+  const ML=endCamp==='lab'?LAB:SYS; ML.forEach((z,k)=>{ const a=t*0.8+k*(6.283/ML.length), cx=160+Math.cos(a)*62, cy=98+Math.sin(a)*34; disc(cx,cy,8,'#7a5a10'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#fff'); });
   ctx.save(); ctx.translate(160,100); ctx.scale(2,2); drawHero(0,0,t,null); ctx.restore();
 }
 
@@ -1431,18 +1718,18 @@ function closeModal(){ modal.hidden=true; if(scene==='level' && LV && (LV.mode==
 function codexList(){
   openModal(`<h2 id="mTitle">Codex des systèmes</h2><p class="hint">Toutes les fiches des systèmes sont disponibles. Relis-les avant les niveaux!</p>
     <div class="codex">${ALL.map((z,i)=>isUnlocked(i)
-      ?`<button class="btn cx" data-act="cxView" data-arg="${i}"><span class="chip" style="--c:${chipColor(i)}"></span>${i===8?'Révision finale':z.nom}${isBeaten(i)?' ★':''}</button>`
+      ?`<button class="btn cx" data-act="cxView" data-arg="${i}"><span class="chip" style="--c:${chipColor(i)}"></span>${wName(i)}${isBeaten(i)?' ★':''}</button>`
       :`<button class="btn cx" disabled><span class="chip" style="--c:#2a3366"></span>??? (verrouillé)</button>`).join('')}</div>
     <div class="row end"><button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
 }
 function cxView(i,solo){
   const z=ALL[i];
-  openModal(`<h2 id="mTitle">${i===8?'Révision finale':z.nom}</h2><p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b></p>${ficheHTML(z)}
+  openModal(`<h2 id="mTitle">${wName(i)}</h2><p class="meta">${z.fonction} · Gardien : <b>${z.ennemi.nom}</b></p>${ficheHTML(z)}
     <div class="row end">${solo?'':'<button class="btn ghost" data-act="codex">◀ Codex</button>'}<button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
 }
 function help(){
   openModal(`<h2 id="mTitle">Comment jouer</h2>
-    <p>Choisis un système sur la carte du corps de Max. Chaque système est un niveau de plateforme.</p>
+    <p>Deux aventures : <b>le corps humain</b> (8 systèmes) et <b>labo et atelier</b> (concentrations, univers matériel, univers technologique). Chaque monde est un niveau de plateforme. La <b>course multijoueur</b> se joue à 2 sur le même appareil, en ligne ou contre la montre.</p>
     <p>Frappe les blocs du savoir (avec une ampoule) par en dessous : une question apparaît. Bonne réponse : +1 cœur, +10 XP et +3 ATP. Erreur : tu perds un cœur.</p>
     <p>Saute sur les petits pathogènes pour les écraser : garde le bouton de saut enfoncé pour rebondir très haut! Si tu les touches de côté ou si tu tombes dans un trou, tu perds un cœur et tu clignotes 2 secondes : tant que tu clignotes, tu es invincible. Les drapeaux verts sont des points de contrôle : si tu tombes dans un trou ou si tu es K.O., tu repars du dernier drapeau touché.</p>
     <p>Au bout du niveau, le gardien t’attend : chaque bonne réponse lui lance un anticorps. Trois bonnes réponses de suite : coups critiques! Ramasse ensuite l’insigne.</p>
@@ -1454,9 +1741,11 @@ function help(){
 
 /* ---------- Actions ---------- */
 const ACT={
-  newGame(){ A.sfx('confirm'); if(loadSave()&&(G.beaten.length||G.level>1||G.total)) confirmNew(); else startNew(); },
+  newGame(){ A.sfx('select'); confirmNew(); },
+  goBody(){ A.sfx('confirm'); goBody(); },
+  goLab(){ A.sfx('confirm'); goLab(); },
+  home(){ A.sfx('select'); toTitle(); },
   startNew(){ A.sfx('confirm'); startNew(); },
-  cont(){ A.sfx('confirm'); G=loadSave()||fresh(); updateHUD(); G.finalWon?ending():toMap(); },
   title(){ toTitle(); },
   end(){ ending(); },
   dlgNext(){ const d=DLG; if(!d) return; if(d.typing){ d.full(); return; } A.sfx('select'); d.i++; if(d.i<d.lines.length) showDlg(); else { DLG=null; d.done&&d.done(); } },
@@ -1476,7 +1765,16 @@ const ACT={
     panel.querySelectorAll('[data-act=vitamin]').forEach(b=>{ b.textContent='Vitamine C ×'+G.vit; b.disabled=G.vit<1||hearts>=maxHearts(); });
     if(playing()){ try{ cv.focus({preventScroll:true}); }catch(e){} } },
   prevZone(){ moveSel(-1); }, nextZone(){ moveSel(1); },
-  ending(){ ending(); },
+  ending(c){ ending(c); },
+  raceMenu(){ A.sfx('select'); raceMenu(); },
+  raceTheme(id){ raceTheme=id; try{ localStorage.setItem(SAVE_KEY+'-rtheme',id); }catch(e){} A.sfx('select'); raceMenu(); const b=panel.querySelector(`[data-act=raceTheme][data-arg=${id}]`); if(b) b.focus({preventScroll:true}); },
+  raceLocal(){ A.sfx('confirm'); startRace('local',(Math.random()*1e9)|0,raceTheme); },
+  raceSolo(){ A.sfx('confirm'); startRace('solo',(Math.random()*1e9)|0,raceTheme); },
+  raceOnline(){ A.sfx('select'); netMenu(); },
+  netHost(){ A.sfx('confirm'); netHost(); },
+  netJoin(){ A.sfx('confirm'); netJoin(); },
+  raceAgain(){ A.sfx('confirm'); if(RC&&RC.mode==='online'){ if(NET.role==='host') hostGo(); } else startRace(RC?RC.mode:'solo',(Math.random()*1e9)|0,raceTheme); },
+  raceQuit(){ A.sfx('select'); raceMenu(); },
   codex(){ A.sfx('select'); codexList(); },
   cxView(i){ A.sfx('select'); cxView(+i); },
   help(){ A.sfx('select'); help(); },
@@ -1491,8 +1789,9 @@ cv.addEventListener('click',e=>{
   if(scene!=='map') return;
   const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)/r.width*W, y=(e.clientY-r.top)/r.height*H;
   let hit=-1;
-  ALL.forEach((z,i)=>{ if(isUnlocked(i) && Math.hypot(z.node[0]-x,z.node[1]-y)<10) hit=i; });
-  if(hit<0) LEG.forEach(l=>{ if(l.i!=null && isUnlocked(l.i) && x<104 && y>=l.y-2 && y<l.y+9) hit=l.i; });
+  camp().idx.forEach(i=>{ const z=ALL[i]; if(isUnlocked(i) && Math.hypot(z.node[0]-x,z.node[1]-y)<(G.camp==='lab'?16:10)) hit=i; });
+  if(hit<0 && G.camp==='lab') CAMP.lab.idx.forEach(i=>{ const ny=ALL[i].node[1]; if(isUnlocked(i) && x>=108 && x<=204 && Math.abs(y-ny)<=16) hit=i; });
+  if(hit<0) (G.camp==='lab'?LEG_LAB:LEG).forEach(l=>{ if(l.i!=null && isUnlocked(l.i) && x<104 && y>=l.y-2 && y<l.y+9) hit=l.i; });
   if(hit<0) return;
   if(hit===sel){ ACT.explore(); } else { sel=hit; A.sfx('select'); showMapPanel(); }
 });
@@ -1500,8 +1799,13 @@ cv.addEventListener('click',e=>{
 /* ---------- Entrées : clavier ---------- */
 const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',Space:'jump',ArrowUp:'jump',KeyW:'jump',KeyZ:'jump',KeyK:'jump',ShiftLeft:'run',ShiftRight:'run',KeyX:'run',KeyJ:'run'};
 function pressGame(k){ if(k==='jump'&&!keys.jump) jumpBuf=0.12; keys[k]=true; }
+const RK1={KeyA:'left',KeyD:'right',KeyW:'jump'}, RK2={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'jump'}, RKS=Object.assign({},RK1,RK2,{Space:'jump',KeyZ:'jump'});
+function raceKey(code){ if(!RC) return null; if(RC.mode==='local'){ if(RK1[code]) return [0,RK1[code]]; if(RK2[code]) return [1,RK2[code]]; return null; } return RKS[code]?[0,RKS[code]]:null; }
+function racePress(pi,a){ const p=RC&&RC.P[pi]; if(!p) return; if(a==='jump'&&!p.k.jump) p.jb=0.12; p.k[a]=true; }
 document.addEventListener('keydown',e=>{
   if(!modal.hidden){ if(e.key==='Escape') closeModal(); return; }
+  if(scene==='race' && RC){ const rk=raceKey(e.code); if(rk && !(document.activeElement && document.activeElement.tagName==='BUTTON' && e.code==='Space' && RC.finished)){ e.preventDefault(); if(!RC.finished){ if(!e.repeat) racePress(rk[0],rk[1]); else RC.P[rk[0]].k[rk[1]]=true; } return; } }
+  if(document.activeElement && document.activeElement.tagName==='INPUT'){ if(e.key==='Enter' && document.activeElement.id==='netCodeIn'){ e.preventDefault(); ACT.netJoin(); } return; }
   const act=KEYMAP[e.code];
   if(playing() && act){ e.preventDefault(); if(!e.repeat) pressGame(act); else keys[act]=true; return; }
   if(scene==='level' && Q && !Q.answered && !DLG){
@@ -1519,8 +1823,8 @@ document.addEventListener('keydown',e=>{
   if((e.key==='Enter'||e.key===' ') && DLG && !(document.activeElement && document.activeElement.tagName==='BUTTON')){ e.preventDefault(); ACT.dlgNext(); }
   if(e.key==='Escape' && scene==='prep') toMap(sel);
 });
-document.addEventListener('keyup',e=>{ const act=KEYMAP[e.code]; if(act){ keys[act]=false; if(scene==='level' && act==='jump' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) e.preventDefault(); } });
-window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
+document.addEventListener('keyup',e=>{ if(RC){ const rk=raceKey(e.code); if(rk) RC.P[rk[0]].k[rk[1]]=false; } const act=KEYMAP[e.code]; if(act){ keys[act]=false; if(scene==='level' && act==='jump' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) e.preventDefault(); } });
+window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; if(RC) RC.P.forEach(p=>{ p.k.left=p.k.right=p.k.jump=false; }); });
 
 /* ---------- Entrées : croix et boutons A / B ---------- */
 document.querySelectorAll('[data-key]').forEach(el=>{
@@ -1528,22 +1832,362 @@ document.querySelectorAll('[data-key]').forEach(el=>{
   const down=e=>{
     e.preventDefault(); A.init(); el.classList.add('on');
     try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    if(scene==='race' && RC){ if(k!=='run') racePress(0,k); return; }
     if(playing()){ pressGame(k); return; }
     if(DLG && k==='jump'){ ACT.dlgNext(); return; }
     if(scene==='map'){ if(k==='left') moveSel(-1); else if(k==='right') moveSel(1); else if(k==='jump') ACT.explore(); return; }
     if(scene==='prep' && k==='jump'){ ACT.go(); return; }
   };
-  const up=()=>{ el.classList.remove('on'); keys[k]=false; };
+  const up=()=>{ el.classList.remove('on'); keys[k]=false; if(RC && k!=='run') RC.P[0].k[k]=false; };
   el.addEventListener('pointerdown',down);
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('lostpointercapture',up);
   el.addEventListener('contextmenu',e=>e.preventDefault());
   el.addEventListener('click',e=>e.preventDefault());
 });
 
+document.querySelectorAll('[data-rk]').forEach(el=>{
+  const [pi,a]=el.dataset.rk.split(':'), n=+pi;
+  const down=e=>{ e.preventDefault(); A.init(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} if(scene==='race'&&RC) racePress(n,a); };
+  const up=()=>{ el.classList.remove('on'); if(RC&&RC.P[n]) RC.P[n].k[a]=false; };
+  el.addEventListener('pointerdown',down); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('lostpointercapture',up);
+  el.addEventListener('contextmenu',e=>e.preventDefault()); el.addEventListener('click',e=>e.preventDefault());
+});
 // le son démarre au premier geste
 const unlock=()=>{ A.init(); window.removeEventListener('pointerdown',unlock,true); window.removeEventListener('keydown',unlock,true); };
 window.addEventListener('pointerdown',unlock,true); window.addEventListener('keydown',unlock,true);
 try{ if(localStorage.getItem(SAVE_KEY+'-mute')==='1'){ A.setMuted(true); $('#pSound').setAttribute('aria-pressed','false'); } }catch(e){}
+
+
+/* =========================================================
+   COURSE MULTIJOUEUR — le plus rapide au drapeau gagne
+   ========================================================= */
+const RTHEMES=[
+  {id:'corps', nom:'Le corps humain', vis:'res', foe:()=>SYS[0].ennemi, src:()=>SYS.flatMap(s=>s.q)},
+  {id:'con', nom:'Les concentrations', vis:'con', foe:()=>LAB[0].ennemi, src:()=>LAB[0].q.concat(GEN_CON,GEN_CON)},
+  {id:'mat', nom:'L’univers matériel', vis:'mat', foe:()=>LAB[1].ennemi, src:()=>LAB[1].q.concat(GEN_MAT,GEN_MAT)},
+  {id:'tec', nom:'L’univers technologique', vis:'tec', foe:()=>LAB[2].ennemi, src:()=>LAB[2].q.slice()},
+  {id:'mix', nom:'Tout mélangé', vis:'lym', foe:()=>SYS[7].ennemi, src:()=>SYS.flatMap(s=>s.q).concat(LAB.flatMap(l=>l.q.concat(l.gens||[])))}
+];
+const SKINS=[{OL:'#24305e',BODY:'#e4eafc',NU:'#7d4fc0',FOOT:'#3a2f6e',tag:'#9fd8ff',nom:'Joueur 1 (blanc)'},{OL:'#5a2410',BODY:'#ffe2c6',NU:'#e0602a',FOOT:'#7a3414',tag:'#ffb347',nom:'Joueur 2 (orange)'}];
+const ANS_COL=['#e8455a','#f2c230','#3fbf6f'];
+let RC=null, raceTheme='mix', raceSeedLast=0;
+try{ raceTheme=localStorage.getItem(SAVE_KEY+'-rtheme')||'mix'; }catch(e){}
+const shuffleR=(a,rnd)=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const themeOf=id=>RTHEMES.find(t=>t.id===id)||RTHEMES[4];
+const fmtT=ms=>(ms/1000).toLocaleString('fr-CA',{minimumFractionDigits:1,maximumFractionDigits:1})+' s';
+
+function raceQuestion(item,rnd){
+  const q=typeof item==='function'?item(rnd):item;
+  const d=shuffleR(q.o.slice(1),rnd).slice(0,2), opts=shuffleR([q.o[0],...d],rnd);
+  return {q:q.q, e:q.e, opts, good:opts.indexOf(q.o[0]), txt:q.o[0]};
+}
+function buildRace(seed,themeId){
+  const rnd=mulberry32(seed), ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)), th=themeOf(themeId), src=th.src();
+  const NR=5, SP=30, START=12, MAIN=START+NR*SP+4, LW=MAIN+16;
+  const h=new Array(LW).fill(10), rows=[], used=new Set();
+  let x=START, cur=10;
+  const step=()=>{ cur=Math.max(8,Math.min(10,cur+(rnd()<0.5?-1:1))); };
+  for(let k=0;k<NR;k++){
+    const zEnd=x+SP-14;
+    while(x<zEnd){
+      const r=rnd();
+      if(r<0.3 && zEnd-x>=6){ const n=ri(2,3); for(let i=0;i<n;i++) h[x++]=99; step(); for(let i=0;i<3&&x<zEnd;i++) h[x++]=cur; }
+      else if(r<0.55){ step(); for(let i=0;i<4&&x<zEnd;i++) h[x++]=cur; }
+      else for(let i=0;i<4&&x<zEnd;i++) h[x++]=cur;
+    }
+    const z0=x; for(let i=0;i<14;i++) h[x++]=cur;
+    let qi=0, tries=0; do{ qi=Math.floor(rnd()*src.length); tries++; }while(used.has(qi) && tries<50); used.add(qi);
+    rows.push({cols:[z0+3,z0+6,z0+9], r:cur-4, x0:z0*TS, x1:(z0+12)*TS, q:raceQuestion(src[qi],rnd), res:{}});
+  }
+  while(x<LW) h[x++]=cur;
+  const grid=Array.from({length:ROWS},()=>new Array(LW).fill('.'));
+  for(let c=0;c<LW;c++){ if(h[c]>=ROWS) continue; grid[h[c]][c]='G'; for(let r=h[c]+1;r<ROWS;r++) grid[r][c]='D'; }
+  const rowAt={};
+  rows.forEach(rw=>rw.cols.forEach((c,i)=>{ grid[rw.r][c]='ABC'[i]; rowAt[c+','+rw.r]=rw; }));
+  for(let r=0;r<10;r++) grid[r][LW-1]='P';
+  const enemies=[];
+  for(let k=0;k<NR;k++){ const base=START+k*SP; for(let t=0;t<12;t++){ const c=base+ri(3,SP-17); if(h[c]<99&&h[c-1]===h[c]&&h[c+1]===h[c]){ enemies.push({x:c*TS+1,y:h[c]*TS-12,w:14,h:12,vx:-22,vy:0,alive:true,squash:0,on:true}); break; } } }
+  const flagC=MAIN+2, foe=th.foe();
+  return {race:true, seed, theme:th, th:THEMES[th.vis], grid, h, W:LW, MAIN, rows, rowAt, enemies, flagX:flagC*TS, flagY:h[flagC]*TS, bumps:{}, epal:foe.pal, etype:foe.type};
+}
+function mkRacer(id,L){ const y=L.h[2]*TS-20, x=2*TS+1+id*8; return {id,x,y,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,jumping:false,stun:0,turbo:0,inv:0,jb:0,k:{left:false,right:false,jump:false},done:false,time:0,cam:0,safe:{x,y},skin:SKINS[id],msg:null,ok:0}; }
+function setSplit(on){ cv.classList.toggle('split',on); const hh=on?720:360; if(cv.height!==hh) cv.height=hh; }
+
+function startRace(mode,seed,themeId){
+  raceSeedLast=seed;
+  const L=buildRace(seed,themeId); LV=L;
+  RC={mode, L, P:Array.from({length:mode==='local'?2:1},(_,i)=>mkRacer(i,L)), t0:performance.now()+3300, started:false, finished:false, order:[], ghost:null, oppDone:null, oppOk:0, lastSend:0, lastBeep:0, lost:false};
+  scene='race'; Q=null; DLG=null; parts=[];
+  if(!modal.hidden) closeModal();
+  setSplit(mode==='local'); $('#rtouch').hidden=mode!=='local';
+  overlays(); A.play('battle'); showRacePanel();
+  try{ cv.focus({preventScroll:true}); }catch(e){}
+}
+function showRacePanel(){
+  const loc=RC.mode==='local', on=RC.mode==='online';
+  setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course : ${RC.L.theme.nom}</h2></div>
+    <p>Frappe la bonne lettre par en dessous : <b class="gold">bonne réponse = turbo</b>, mauvaise réponse = fausse manip (tu figes). ${on?'Ton adversaire est le fantôme transparent.':''} Le premier au drapeau gagne!</p>
+    <p class="hint">${loc?'Joueur 1 (en haut, blanc) : A et D pour bouger, W pour sauter (Q, D et Z sur un clavier français). Joueur 2 (en bas, orange) : les flèches. Sur tablette : les boutons sous l’écran.':'Flèches (ou A, D, W) pour bouger et sauter. Sur tablette : la croix et le bouton A.'}</p>
+    <div class="row"><button class="btn small ghost" data-act="raceQuit">Quitter la course</button></div>`,null);
+}
+function raceSay(p,text,color,ms){ p.msg={text,color,until:performance.now()+(ms||1300)}; }
+function raceBump(p,hit,now){
+  const L=RC.L, k=L.grid[hit.r]&&L.grid[hit.r][hit.c];
+  if(k==='A'||k==='B'||k==='C'){
+    const rw=L.rowAt[hit.c+','+hit.r]; if(!rw) return;
+    L.bumps[hit.c+','+hit.r]=now;
+    if(rw.res[p.id]){ A.sfx('bump'); return; }
+    const pick='ABC'.indexOf(k), ok=pick===rw.q.good;
+    rw.res[p.id]={pick,ok,t:now};
+    if(ok){ p.ok++; p.turbo=3; A.sfx('block'); raceSay(p,'TURBO!','#7ff0a4'); }
+    else { p.stun=1.5; p.vx=0; A.sfx('hurt'); raceSay(p,'FAUSSE MANIP!','#ff8fa3'); }
+    return;
+  }
+  A.sfx('bump');
+}
+function stepRacer(p,dt,now){
+  const L=RC.L;
+  p.stun=Math.max(0,p.stun-dt); p.turbo=Math.max(0,p.turbo-dt); p.inv=Math.max(0,p.inv-dt); p.jb=Math.max(0,p.jb-dt);
+  p.coyote=p.onGround?0.09:Math.max(0,p.coyote-dt);
+  const can=RC.started && !p.done && p.stun<=0;
+  let dir=0; if(can){ if(p.k.left) dir-=1; if(p.k.right) dir+=1; }
+  const max=p.turbo>0?170:100;
+  if(dir){ p.vx+=dir*(p.onGround?700:520)*dt; p.face=dir; if(Math.abs(p.vx)>max) p.vx=Math.sign(p.vx)*Math.max(max,Math.abs(p.vx)-500*dt); }
+  else { const f=(p.onGround?800:220)*dt; if(Math.abs(p.vx)<=f) p.vx=0; else p.vx-=Math.sign(p.vx)*f; }
+  if(p.done) p.vx*=0.9;
+  if(can && p.jb>0 && p.coyote>0){ p.vy=p.turbo>0?-420:-405; p.onGround=false; p.coyote=0; p.jb=0; p.jumping=true; A.sfx('jump'); }
+  if(p.jumping && !p.k.jump && p.vy<-130) p.vy=-130;
+  p.vy=Math.min(430,p.vy+930*dt);
+  moveX(p,dt);
+  const hit=moveY(p,dt);
+  if(p.onGround) p.jumping=false;
+  if(hit){ p.jumping=false; if(!p.done) raceBump(p,hit,now); }
+  if(p.onGround && solid(Math.floor((p.x+1)/TS),Math.floor((p.y+p.h+1)/TS)) && solid(Math.floor((p.x+p.w-1)/TS),Math.floor((p.y+p.h+1)/TS))) p.safe={x:p.x,y:p.y};
+  for(const e of L.enemies){
+    if(!e.alive||e.squash>0||p.done) continue;
+    if(overlap(p,e,2)){
+      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; const hold=p.k.jump||p.jb>0; p.vy=hold?-470:-320; p.jumping=hold; p.jb=0; A.sfx('stomp'); }
+      else if(p.inv<=0){ p.stun=1; p.inv=1.8; p.vx=(p.x+7<e.x+7?-1:1)*120; p.vy=-160; e.vx=(e.x<p.x?-1:1)*Math.max(22,Math.abs(e.vx)); A.sfx('hurt'); raceSay(p,'OUCH!','#ff8fa3'); }
+    }
+  }
+  if(p.y>ROWS*TS+24){ p.x=p.safe.x; p.y=p.safe.y; p.vx=0; p.vy=0; p.stun=1; p.inv=1.8; A.sfx('fall'); raceSay(p,'PLOUF! -1 s','#ff8fa3'); }
+  if(!p.done && RC.started && p.x+7>=L.flagX){ p.done=true; p.time=now-RC.t0; RC.order.push(p.id); A.sfx('level'); raceFinished(p); }
+  const target=Math.max(0,Math.min(L.W*TS-W,p.x+7-110));
+  p.cam+=(target-p.cam)*Math.min(1,dt*12);
+}
+function updateRace(dt,now){
+  const R0=RC, L=R0.L;
+  if(!modal.hidden) return;
+  if(!R0.started){
+    const left=R0.t0-now, s=Math.ceil(left/1000);
+    if(s>0 && s<=3 && s!==R0.lastBeep){ R0.lastBeep=s; A.sfx('select'); }
+    if(left<=0){ R0.started=true; A.sfx('confirm'); A.play('level'); }
+  }
+  for(const e of L.enemies){
+    if(!e.alive) continue;
+    if(e.squash>0){ e.squash-=dt; if(e.squash<=0) e.alive=false; continue; }
+    const v=e.vx; e.vy=Math.min(400,e.vy+900*dt);
+    if(moveX(e,dt)) e.vx=-v;
+    moveY(e,dt);
+    if(e.onGround){ const fx=e.vx<0?e.x-1:e.x+e.w+1; if(!solid(Math.floor(fx/TS),Math.floor((e.y+e.h+2)/TS))) e.vx=-e.vx; }
+    if(e.y>ROWS*TS+40) e.alive=false;
+  }
+  for(const p of R0.P) stepRacer(p,dt,now);
+  if(R0.mode==='online'){
+    const p=R0.P[0];
+    if(now-R0.lastSend>80){ R0.lastSend=now; nSend({t:'p',x:Math.round(p.x),y:Math.round(p.y),f:p.face,g:p.onGround?1:0,vx:Math.round(p.vx),s:p.stun>0?1:0,tb:p.turbo>0?1:0}); }
+    const g=R0.ghost; if(g){ g.x+=(g.tx-g.x)*Math.min(1,dt*12); g.y+=(g.ty-g.y)*Math.min(1,dt*12); }
+  }
+}
+function raceFinished(p){
+  if(RC.mode==='local'){ if(RC.P.every(q=>q.done)) setTimeout(raceResults,1400); }
+  else if(RC.mode==='solo') setTimeout(raceResults,1200);
+  else { nSend({t:'fin',time:p.time,ok:p.ok}); checkOnlineEnd(); }
+}
+function checkOnlineEnd(){ if(RC && RC.mode==='online' && RC.P[0].done && (RC.oppDone!=null || RC.lost) && !RC.finished) setTimeout(raceResults,1000); }
+
+/* ---------- Rendu ---------- */
+function wrapLines(str,maxW,font){ ctx.font=font; const words=String(str).split(' '), out=[]; let line=''; for(const w of words){ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){ out.push(line); line=w; } else line=t; } if(line) out.push(line); return out; }
+function drawAnsTile(k,sx,sy,rw,pid){
+  const i='ABC'.indexOf(k), res=rw&&rw.res[pid];
+  if(res){
+    if(res.pick===i){ const c=res.ok?'#1b8a4a':'#b02a3e'; R(sx,sy,16,16,'#14112a'); R(sx+1,sy+1,14,14,c);
+      if(res.ok){ line(sx+4,sy+8,sx+7,sy+11,'#fff'); line(sx+7,sy+11,sx+12,sy+4,'#fff'); } else { line(sx+4,sy+4,sx+11,sy+11,'#fff'); line(sx+11,sy+4,sx+4,sy+11,'#fff'); } }
+    else drawTile('U',sx,sy,null,0,0,0);
+    return;
+  }
+  R(sx,sy,16,16,'#14112a'); R(sx+1,sy+1,14,14,ANS_COL[i]); R(sx+1,sy+1,14,2,'rgba(255,255,255,.55)'); R(sx+1,sy+13,14,2,'rgba(0,0,0,.25)');
+  ctx.font='8px '+FONT_HUD; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='#14112a'; ctx.fillText(k,sx+8.5,sy+5);
+}
+function drawFinish(x,y,t){
+  R(x,y-56,2,56,'#f2f0ff'); disc(x+1,y-57,2,'#f8c537');
+  const w=Math.round(Math.sin(t*5));
+  for(let r=0;r<3;r++) for(let c=0;c<5;c++) R(x+2+c*4,y-54+r*4+(c>2?w:0),4,4,(r+c)%2?'#14112a':'#ffffff');
+  txt('ARRIVÉE',x+12,y-66,'#ffffff',6,'center',FONT_HUD);
+}
+function currentRow(p,now){
+  const rows=RC.L.rows;
+  const fb=rows.find(rw=>rw.res[p.id] && now-rw.res[p.id].t<3200); if(fb) return {rw:fb,fb:true};
+  const rw=rows.find(rw=>!rw.res[p.id] && p.x+7<rw.x1+TS && p.x+7>rw.x0-15*TS); return rw?{rw,fb:false}:null;
+}
+function raceQBox(p,now){
+  const cr=currentRow(p,now); if(!cr) return;
+  const {rw,fb}=cr, fQ='600 8px "Pixelify Sans", monospace', fO='7px "Pixelify Sans", monospace';
+  let lines=[];
+  if(fb){
+    const res=rw.res[p.id];
+    if(res.ok) lines.push({t:'BONNE RÉPONSE! TURBO!',f:fQ,c:'#7ff0a4'});
+    else { lines.push({t:'FAUSSE MANIP! La bonne réponse :',f:fQ,c:'#ff8fa3'}); wrapLines('ABC'[rw.q.good]+' : '+rw.q.txt,296,fO).forEach(s=>lines.push({t:s,f:fO,c:'#ffffff'})); }
+  } else {
+    wrapLines(rw.q.q,300,fQ).forEach(s=>lines.push({t:s,f:fQ,c:'#ffffff'}));
+    rw.q.opts.forEach((o,i)=>wrapLines(o,284,fO).forEach((s,j)=>lines.push({t:s,f:fO,c:'#dfe4ff',chip:j===0?i:-1,ind:14})));
+  }
+  const lh=9, hh=lines.length*lh+6;
+  ctx.fillStyle='rgba(8,12,40,.86)'; ctx.fillRect(4,15,312,hh); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillRect(4,15,312,1);
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  lines.forEach((l,i)=>{ const y=18+i*lh;
+    if(l.chip>=0){ R(9,y,9,8,ANS_COL[l.chip]); ctx.font='6px '+FONT_HUD; ctx.fillStyle='#14112a'; ctx.fillText('ABC'[l.chip],10.5,y+1); }
+    ctx.font=l.f; ctx.fillStyle=l.c; ctx.fillText(l.t,8+(l.ind||0),y); });
+}
+function drawRaceView(p,oy,t,now){
+  const L=RC.L;
+  ctx.save(); ctx.translate(0,oy); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
+  const cam=Math.round(p.cam);
+  drawSky(L.th,cam,t);
+  drawTiles(L,cam,now,t,p);
+  const fx=L.flagX-cam; if(fx>-30&&fx<W+30) drawFinish(fx,L.flagY-VY,t);
+  for(const e of L.enemies){ if(!e.alive) continue; const sx=e.x-cam; if(sx>-20&&sx<W+20) drawMinion(e,sx,e.y-VY,t,L.epal,L.etype); }
+  if(RC.mode==='local'){ const o=RC.P[1-p.id]; ctx.globalAlpha=0.55; drawGlobi(o.x-cam,o.y-VY,t,o,null); ctx.globalAlpha=1; txt(o.id?'J2':'J1',o.x-cam+7,o.y-VY-22,o.skin.tag,6,'center',FONT_HUD); }
+  if(RC.mode==='online' && RC.ghost){ const g=RC.ghost; ctx.globalAlpha=0.45; drawGlobi(g.x-cam,g.y-VY,t,{face:g.face||1,onGround:!!g.onGround,vx:g.vx||0,skin:SKINS[1]},null); ctx.globalAlpha=1; txt('ADVERSAIRE',g.x-cam+7,g.y-VY-22,SKINS[1].tag,6,'center',FONT_HUD); }
+  if(p.turbo>0){ for(let i=1;i<4;i++) R(p.x-cam-i*5*(p.face||1)+(p.face<0?14:0),p.y-VY+6+i*3,6,1,'rgba(127,240,164,'+(0.7-i*0.18)+')'); }
+  const blink=p.inv>0 && Math.floor(now/90)%2===0;
+  if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,null);
+  if(p.stun>0) for(let k=0;k<3;k++){ const a=t*6+k*2.09; star(p.x-cam+5+Math.cos(a)*8,p.y-VY-14+Math.sin(a)*3,'#ffe66b'); }
+  // barre du haut
+  R(0,0,W,13,'rgba(10,20,60,.5)');
+  const lab=RC.mode==='local'?(p.id?'J2':'J1'):'TOI';
+  txt(lab,4,3,p.skin.tag,8,'left',FONT_HUD);
+  const el=RC.started?(p.done?p.time:now-RC.t0):0;
+  txt(fmtT(Math.max(0,el)),160,3,'#ffffff',8,'center',FONT_HUD);
+  txt('BONNES '+p.ok+'/'+L.rows.length,316,3,'#7ff0a4',8,'right',FONT_HUD);
+  raceQBox(p,now);
+  // progression
+  const px0=24, pw=272, py=171;
+  R(px0,py,pw,3,'rgba(0,0,0,.45)'); R(px0+pw-2,py-3,2,9,'#ffffff');
+  const mark=(x,c)=>{ const f=Math.max(0,Math.min(1,(x+7)/L.flagX)); R(px0+f*pw-2,py-2,5,7,'#14112a'); R(px0+f*pw-1,py-1,3,5,c); };
+  if(RC.mode==='local') mark(RC.P[1-p.id].x,RC.P[1-p.id].skin.tag);
+  if(RC.mode==='online' && RC.ghost) mark(RC.ghost.x,SKINS[1].tag);
+  mark(p.x,p.skin.tag);
+  if(p.msg && now<p.msg.until) txt(p.msg.text,160,128,p.msg.color,10,'center',FONT_HUD);
+  if(!RC.started){ const s=Math.ceil((RC.t0-now)/1000); txt(s>0?String(s):'GO!',160,74,'#ffffff',24,'center',FONT_HUD); }
+  else if(now-RC.t0<700) txt('GO!',160,74,'#7ff0a4',24,'center',FONT_HUD);
+  if(p.done){ const place=RC.order.indexOf(p.id)+1; const msg=RC.mode==='solo'?'ARRIVÉE!':RC.mode==='local'?(place===1?'1er!':'2e'):(RC.oppDone!=null&&RC.oppDone<p.time?'2e':'1er!');
+    R(60,70,200,34,'rgba(8,12,40,.8)'); txt(msg+'  '+fmtT(p.time),160,76,'#f8c537',10,'center',FONT_HUD);
+    if(RC.mode==='online' && RC.oppDone==null && !RC.lost) txt('En attente de l’adversaire…',160,92,'#ffffff',6,'center',FONT_HUD);
+    if(RC.mode==='local' && !RC.P.every(q=>q.done)) txt('On attend l’autre joueur…',160,92,'#ffffff',6,'center',FONT_HUD); }
+  else if(RC.mode==='online' && RC.oppDone!=null) txt('Ton adversaire est arrivé!',160,110,'#ffb347',7,'center',FONT_HUD);
+  if(RC.lost && !p.done) txt('Connexion perdue',160,110,'#ff8fa3',7,'center',FONT_HUD);
+  ctx.restore();
+}
+function drawRace(t,now){
+  if(RC.mode==='local'){ drawRaceView(RC.P[0],0,t,now); drawRaceView(RC.P[1],180,t,now); R(0,179,W,2,'#07061a'); }
+  else drawRaceView(RC.P[0],0,t,now);
+}
+
+/* ---------- Résultats ---------- */
+function raceResults(){
+  if(!RC||RC.finished) return; RC.finished=true; A.play('win');
+  const th=RC.L.theme; let html=`<h2>Résultats : ${th.nom}</h2>`;
+  if(RC.mode==='local'){
+    const ps=RC.P.slice().sort((a,b)=>(a.done?a.time:1e12)-(b.done?b.time:1e12));
+    html+=`<div class="stats">${ps.map((p,i)=>`<div class="stat">${i===0?'1re place':'2e place'} · ${p.skin.nom}<b>${p.done?fmtT(p.time):'—'}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div>`).join('')}</div>`;
+  } else if(RC.mode==='solo'){
+    const p=RC.P[0]; G.raceBest=G.raceBest||{}; const old=G.raceBest[th.id], rec=!old||p.time<old; if(rec){ G.raceBest[th.id]=p.time; save(); }
+    html+=`<div class="stats"><div class="stat">Ton temps<b>${fmtT(p.time)}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div><div class="stat">Record<b>${fmtT(G.raceBest[th.id])}</b>${rec?'Nouveau record!':'Essaie de le battre!'}</div></div>`;
+  } else {
+    const p=RC.P[0], opp=RC.oppDone, win=opp==null||p.time<=opp;
+    html+=`<p class="say">${RC.lost&&opp==null?'La connexion a été perdue.':win?'Tu as gagné la course!':'Ton adversaire a gagné.'}</p><div class="stats"><div class="stat">Toi<b>${fmtT(p.time)}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div><div class="stat">Adversaire<b>${opp!=null?fmtT(opp):'—'}</b>${opp!=null?RC.oppOk+'/'+RC.L.rows.length+' bonnes réponses':''}</div></div>`;
+  }
+  html+=`<h2>Corrigé de la course</h2><ul class="fiche" style="--c:#ff5d6c">${RC.L.rows.map(rw=>`<li>${rw.q.q}<br><b>${rw.q.txt}</b> · <span class="expl">${rw.q.e}</span></li>`).join('')}</ul>`;
+  const again=RC.mode==='online'?(NET.role==='host'&&!RC.lost?'<button class="btn" data-act="raceAgain">Nouvelle course ▶</button>':'<span class="hint">'+(RC.lost?'':'La personne qui a créé la course peut en lancer une nouvelle.')+'</span>'):'<button class="btn" data-act="raceAgain">Rejouer ▶</button>';
+  html+=`<div class="row">${again}<button class="btn ghost" data-act="raceMenu">Changer de mode</button><button class="btn ghost" data-act="home">Accueil</button></div>`;
+  setPanel(html);
+}
+
+/* ---------- Menus ---------- */
+function raceMenu(){
+  if(RC && RC.mode==='online') netClose();
+  RC=null; LV=null; scene='racemenu'; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('title');
+  const best=G.raceBest&&G.raceBest[raceTheme];
+  setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course multijoueur</h2></div>
+    <p>Tout le monde court sur le même parcours avec 5 rangées de blocs A, B, C. Frappe la bonne lettre par en dessous : bonne réponse = turbo, mauvaise = fausse manip. Le premier au drapeau gagne!</p>
+    <div class="qhead">1. Choisis le thème</div>
+    <div class="row">${RTHEMES.map(t=>`<button class="btn small tchip" data-act="raceTheme" data-arg="${t.id}" aria-pressed="${t.id===raceTheme}">${t.nom}</button>`).join('')}</div>
+    <div class="qhead">2. Choisis le mode</div>
+    <div class="modes">
+      <button class="btn mode" data-act="raceLocal"><b>2 joueurs</b><span>Sur le même appareil, écran partagé</span></button>
+      <button class="btn mode" data-act="raceOnline"><b>En ligne</b><span>Chacun sur son appareil, avec un code</span></button>
+      <button class="btn mode" data-act="raceSolo"><b>Contre la montre</b><span>Seul, pour battre ton record${best?' ('+fmtT(best)+')':''}</span></button>
+    </div>
+    <div class="row"><button class="btn small ghost" data-act="home">◀ Accueil</button></div>`);
+}
+function netMenu(){
+  setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course en ligne</h2></div>
+    <p>Les deux appareils doivent être connectés à Internet. Le thème choisi par la personne qui crée la course s’applique aux deux joueurs (ici : <b class="gold">${themeOf(raceTheme).nom}</b>).</p>
+    <div class="row" id="netChoice"><button class="btn" data-act="netHost">Créer une course</button><span class="hint">ou</span><input id="netCodeIn" class="codein" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Code de la course"><button class="btn" data-act="netJoin">Rejoindre</button></div>
+    <div id="netHostBox" hidden><p>Code à donner à ton adversaire : <b class="code" id="netCode">····</b></p></div>
+    <p class="hint" id="netStatus" aria-live="polite"></p>
+    <div class="row"><button class="btn small ghost" data-act="raceMenu">◀ Retour</button></div>`,'[data-act=netHost]');
+}
+
+/* ---------- Réseau (PeerJS) ---------- */
+class FakePeer{
+  constructor(id){ this.id=id||('g'+Math.random().toString(36).slice(2,8)); this.h={}; this.conns={}; this.bc=new BroadcastChannel('globi-fakepeer'); this.bc.onmessage=e=>this._msg(e.data); setTimeout(()=>this._emit('open',this.id),50); }
+  on(ev,f){ this.h[ev]=f; } _emit(ev,...a){ this.h[ev]&&this.h[ev](...a); }
+  connect(target){ const c=new FakeConn(this,target); this.conns[target]=c; this.bc.postMessage({type:'conn',from:this.id,to:target}); setTimeout(()=>c._emit('open'),80); return c; }
+  _msg(m){ if(m.to!==this.id) return; if(m.type==='conn'){ const c=new FakeConn(this,m.from); this.conns[m.from]=c; this._emit('connection',c); setTimeout(()=>c._emit('open'),80); } else if(m.type==='data'){ const c=this.conns[m.from]; c&&c._emit('data',m.data); } else if(m.type==='close'){ const c=this.conns[m.from]; c&&c._emit('close'); } }
+  destroy(){ try{ this.bc.close(); }catch(e){} }
+}
+class FakeConn{ constructor(peer,remote){ this.peer=peer; this.remote=remote; this.h={}; this.open=true; } on(ev,f){ this.h[ev]=f; } _emit(ev,...a){ this.h[ev]&&this.h[ev](...a); } send(d){ this.peer.bc.postMessage({type:'data',from:this.peer.id,to:this.remote,data:d}); } close(){ this.peer.bc.postMessage({type:'close',from:this.peer.id,to:this.remote}); } }
+const PeerCtor=(location.hash==='#bctest')?FakePeer:(typeof Peer!=='undefined'?Peer:null);
+let NET={peer:null,conn:null,role:null,to:null};
+const RPREFIX='globi-course-';
+function nSend(m){ try{ if(NET.conn && NET.conn.open!==false) NET.conn.send(m); }catch(e){} }
+function netClose(){ try{ NET.conn&&NET.conn.close(); }catch(e){} try{ NET.peer&&NET.peer.destroy(); }catch(e){} clearTimeout(NET.to); NET={peer:null,conn:null,role:null,to:null}; }
+function netStatus(s){ const el=$('#netStatus'); if(el) el.textContent=s; }
+const NO_NET='Le mode en ligne a besoin d’Internet. Il fonctionne sur ton site GitHub, mais pas dans l’aperçu de Claude ni sans connexion.';
+function netHost(){
+  if(!PeerCtor){ netStatus(NO_NET); return; }
+  netClose(); $('#netChoice').hidden=true; $('#netHostBox').hidden=false;
+  const tryHost=()=>{
+    const code=Array.from({length:4},()=>'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random()*23)]).join('');
+    netStatus('Création de la course…');
+    let peer; try{ peer=new PeerCtor(RPREFIX+code.toLowerCase()); }catch(e){ netStatus(NO_NET); return; }
+    NET.peer=peer; NET.role='host';
+    peer.on('open',()=>{ $('#netCode').textContent=code; netStatus('En attente de ton adversaire… Il choisit « En ligne », tape ce code et touche « Rejoindre ».'); });
+    peer.on('error',err=>{ if(err&&err.type==='unavailable-id'){ try{ peer.destroy(); }catch(e){} tryHost(); } else netStatus('Erreur réseau ('+(err&&err.type||'inconnue')+'). Vérifie la connexion Internet.'); });
+    peer.on('connection',conn=>{ if(NET.conn) return; NET.conn=conn; conn.on('data',netData); conn.on('close',netLost); conn.on('open',()=>{ netStatus('Adversaire connecté!'); setTimeout(hostGo,500); }); });
+  };
+  tryHost();
+}
+function hostGo(){ const seed=(Math.random()*1e9)|0; nSend({t:'go',seed,theme:raceTheme}); startRace('online',seed,raceTheme); }
+function netJoin(){
+  if(!PeerCtor){ netStatus(NO_NET); return; }
+  const code=($('#netCodeIn').value||'').trim().toUpperCase(); if(code.length!==4){ netStatus('Le code contient 4 lettres.'); return; }
+  netClose(); netStatus('Connexion à la course '+code+'…');
+  let peer; try{ peer=new PeerCtor(); }catch(e){ netStatus(NO_NET); return; }
+  NET.peer=peer; NET.role='guest';
+  peer.on('error',err=>netStatus(err&&err.type==='peer-unavailable'?'Aucune course avec ce code. Vérifie le code.':'Erreur réseau ('+(err&&err.type||'inconnue')+').'));
+  peer.on('open',()=>{ const conn=peer.connect(RPREFIX+code.toLowerCase(),{reliable:true,serialization:'json'}); NET.conn=conn; conn.on('data',netData); conn.on('close',netLost); conn.on('open',()=>netStatus('Connecté! La course va commencer…')); });
+  clearTimeout(NET.to); NET.to=setTimeout(()=>{ if(scene!=='race') netStatus('La connexion prend du temps. Le réseau de l’école bloque peut-être les connexions entre appareils : essaie le partage de connexion d’un cellulaire.'); },12000);
+}
+function netData(m){
+  if(!m||!m.t) return;
+  if(m.t==='go'){ raceTheme=m.theme; startRace('online',m.seed,m.theme); }
+  else if(m.t==='p' && RC && RC.mode==='online'){ const g=RC.ghost||(RC.ghost={x:m.x,y:m.y}); g.tx=m.x; g.ty=m.y; g.face=m.f; g.onGround=m.g; g.vx=m.vx; }
+  else if(m.t==='fin' && RC && RC.mode==='online'){ RC.oppDone=m.time; RC.oppOk=m.ok||0; checkOnlineEnd(); }
+}
+function netLost(){ NET.conn=null; if(RC && RC.mode==='online' && !RC.finished){ RC.lost=true; checkOnlineEnd(); } netStatus('Connexion perdue.'); }
 
 /* ---------- Boucle de rendu ---------- */
 let last=performance.now();
@@ -1552,7 +2196,8 @@ function frame(now){
   ctx.setTransform(2,0,0,2,0,0);
   if(shakeUntil>now) ctx.translate(Math.round(Math.random()*4-2),Math.round(Math.random()*4-2));
   try{
-    if(scene==='title'||scene==='intro') drawTitle(t,now,dt);
+    if(scene==='title'||scene==='intro'||scene==='racemenu') drawTitle(t,now,dt);
+    else if(scene==='race' && RC){ updateRace(dt,now); drawRace(t,now); }
     else if(scene==='map') drawMap(t,now,dt);
     else if((scene==='prep'||scene==='level') && LV){
       if(scene==='level'){ updateLevel(dt,now); if(LV) LV.fx=LV.fx.filter(f=>now<f.t0+f.dur+50); }
