@@ -121,6 +121,15 @@ body{
 .mode{display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; padding:12px 14px; min-width:0}
 .mode b{font-size:17px; color:var(--gold); font-weight:700}
 .mode span{font-family:var(--body); font-size:19px; font-weight:400; color:var(--sub); line-height:1.05}
+.sel{font-family:var(--body); font-size:21px; background:var(--box-hi); color:var(--ink); border:2px solid var(--edge); border-radius:4px; padding:6px 8px; max-width:100%}
+.sel:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+.rbtn.ra{background:var(--c); color:#14112a; font-size:14px}
+.modes.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.shopgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px}
+.item{display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left; min-width:0}
+.item span{font-family:var(--body); font-size:18px; font-weight:400; color:var(--muted)}
+.item[aria-pressed="true"]{border-color:var(--gold); background:#3a2f10}
+.item[aria-pressed="true"] b{color:var(--gold)}
 .tchip[aria-pressed="true"]{background:var(--gold); color:#14112a; border-color:var(--gold)}
 .codein{font-family:var(--arcade); font-size:15px; width:7em; text-transform:uppercase; background:#0a1033; color:#fff; border:2px solid var(--edge); border-radius:4px; padding:7px 8px; letter-spacing:.15em}
 .codein:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
@@ -176,7 +185,7 @@ body{
   .say{font-size:22px}
   .ans{font-size:20px; min-height:46px}
   .bezel-top span:last-child{display:none}
-  .modes{grid-template-columns:1fr}
+  .modes,.modes.two{grid-template-columns:1fr}
   .rbtn{width:48px; height:48px}
   .controls{grid-template-columns:auto auto; grid-template-areas:"dpad ab" "mid mid"; justify-content:space-between}
 }
@@ -209,8 +218,8 @@ body{
   </div>
 
   <div class="rtouch" id="rtouch" hidden>
-    <div class="rpad" aria-label="Joueur 1"><span>J1</span><button class="rbtn" data-rk="0:left" aria-label="Joueur 1 gauche">◀</button><button class="rbtn" data-rk="0:right" aria-label="Joueur 1 droite">▶</button><button class="rbtn" data-rk="0:jump" aria-label="Joueur 1 saut">SAUT</button></div>
-    <div class="rpad" aria-label="Joueur 2"><span>J2</span><button class="rbtn" data-rk="1:left" aria-label="Joueur 2 gauche">◀</button><button class="rbtn" data-rk="1:right" aria-label="Joueur 2 droite">▶</button><button class="rbtn" data-rk="1:jump" aria-label="Joueur 2 saut">SAUT</button></div>
+    <div class="rpad" id="rpad0" aria-label="Joueur 1"></div>
+    <div class="rpad" id="rpad1" aria-label="Joueur 2"></div>
   </div>
 
   <div class="panel" id="panel" aria-live="polite"></div>
@@ -440,6 +449,7 @@ const FINAL = { id:'fin', nom:'Cœur du corps', court:'Pathogène', fonction:'R�
     '<b>Fonction de nutrition :</b> systèmes digestif, respiratoire, circulatoire, lymphatique et excréteur. Ils apportent aux cellules ce dont elles ont besoin et éliminent leurs déchets.',
     '<b>Fonction de relation :</b> systèmes nerveux et musculosquelettique, avec les organes des sens. Ils permettent de percevoir l’environnement et d’y réagir.',
     '<b>Fonction de reproduction :</b> système reproducteur. Il assure la continuité de l’espèce.',
+    '<b>Génétique :</b> l’ADN forme les chromosomes (46 par cellule). La mitose donne 2 cellules identiques; la méiose donne 4 gamètes à 23 chromosomes.',
     '<b>Les systèmes collaborent :</b> l’O₂ capté par les poumons est transporté par le sang jusqu’aux muscles, commandés par les nerfs.',
     '<b>Ce boss a 10 PV</b> et pose des questions sur tous les systèmes.'
   ],
@@ -611,14 +621,57 @@ const LABFIN = { id:'lab', nom:'Le grand défi du labo', court:'Défi', fonction
   ],
   q:[] };
 
-const ALL = [...SYS, FINAL, ...LAB, LABFIN]; // 0-7 corps · 8 boss du corps · 9-11 labo · 12 boss du labo
+const GEN = { id:'gen', nom:'La génétique', court:'Génétique', fonction:'Organisation du vivant · ADN et division cellulaire', color:'#c58cf0', part:'cell', node:[191,112],
+  blurb:'Au cœur des cellules de Max, un chromosome mutant sème le désordre : les cellules se divisent n’importe comment.',
+  ennemi:{nom:'Mutatox', type:'chromosome', pal:{a:'#c58cf0',b:'#7a3fb0',o:'#2a0f45',h:'#ffe6ff'}},
+  intro:'Il brouille la mitose et la méiose! Remets chaque chromosome à sa place.',
+  fiche:[
+    '<b>ADN</b> (acide désoxyribonucléique) : molécule en double hélice, dans le noyau, qui contient l’information génétique. Elle est formée de 4 bases : A, T, C et G (A avec T, C avec G).',
+    '<b>Gène :</b> segment d’ADN qui contient l’information pour une caractéristique (ex. : la couleur des yeux).',
+    '<b>Chromosome :</b> longue molécule d’ADN enroulée et condensée. Avant une division, l’ADN se copie : le chromosome a alors 2 <b>chromatides</b> sœurs identiques, reliées par le <b>centromère</b> (forme de X).',
+    '<b>Caryotype humain :</b> 46 chromosomes, soit 23 paires (22 paires d’autosomes et 1 paire de chromosomes sexuels : XX chez la femme, XY chez l’homme). Les 2 chromosomes d’une paire sont <b>homologues</b> : un vient du père, l’autre de la mère.',
+    '<b>Mitose :</b> une cellule-mère donne 2 cellules-filles identiques, avec 46 chromosomes chacune. Elle sert à la croissance, à la réparation et au renouvellement des cellules. Phases : prophase, métaphase, anaphase, télophase. L’ADN se duplique avant, pendant l’interphase.',
+    '<b>Méiose :</b> 2 divisions successives qui donnent 4 cellules-filles différentes, avec 23 chromosomes chacune (la moitié). Elle produit les gamètes (spermatozoïdes et ovules) dans les testicules et les ovaires.',
+    '<b>Fécondation :</b> spermatozoïde (23) + ovule (23) = zygote (46). La méiose et la fécondation créent la diversité génétique : chaque enfant est unique (sauf les vrais jumeaux).',
+    '<b>Différenciation cellulaire :</b> les cellules d’un embryon se spécialisent (cellule nerveuse, musculaire, sanguine…). Une cellule souche n’est pas encore spécialisée.'
+  ],
+  q:[
+    {q:'Où se trouve principalement l’ADN dans une cellule humaine?', o:['Dans le noyau','Dans la membrane cellulaire','Dans la paroi cellulaire','Entre les cellules'], e:'L’ADN est rangé dans le noyau, sous forme de chromosomes.'},
+    {q:'Quelle forme a la molécule d’ADN?', o:['Une double hélice','Une simple chaîne droite','Un X','Une sphère'], e:'L’ADN ressemble à une échelle tordue : deux brins enroulés l’un autour de l’autre.'},
+    {q:'Qu’est-ce qu’un gène?', o:['Un segment d’ADN qui contient l’information pour une caractéristique','Une cellule reproductrice','Une paire de chromosomes','Une phase de la mitose'], e:'Chaque chromosome contient des centaines ou des milliers de gènes.'},
+    {q:'Dans l’ADN, la base A (adénine) s’associe toujours avec…', o:['T (thymine)','C (cytosine)','G (guanine)','A (adénine)'], e:'Les bases vont toujours par paires : A avec T, et C avec G.'},
+    {q:'Combien de chromosomes contient une cellule humaine du corps (non reproductrice)?', o:['46','23','92','44'], e:'46 chromosomes, soit 23 paires.'},
+    {q:'Combien de chromosomes contient un spermatozoïde ou un ovule?', o:['23','46','92','22'], e:'Les gamètes ont la moitié des chromosomes, grâce à la méiose.'},
+    {q:'Qu’est-ce qu’une chromatide?', o:['Une des deux copies identiques d’un chromosome dupliqué','Une paire de chromosomes homologues','Un segment d’ADN qui code une caractéristique','La membrane du noyau'], e:'Après la duplication de l’ADN, chaque chromosome est formé de 2 chromatides sœurs.'},
+    {q:'Comment s’appelle la région qui relie les deux chromatides d’un chromosome?', o:['Le centromère','Le gène','Le noyau','La télophase'], e:'Le centromère donne au chromosome dupliqué sa forme de X.'},
+    {q:'Que sont des chromosomes homologues?', o:['Les deux chromosomes d’une même paire, un venant de chaque parent','Les deux chromatides d’un même chromosome','Deux chromosomes X','Deux cellules-filles identiques'], e:'Ils portent les mêmes gènes au même endroit, mais pas forcément les mêmes versions.'},
+    {q:'Quels chromosomes sexuels a habituellement un homme?', o:['XY','XX','YY','Seulement un X'], e:'La femme a habituellement deux X (XX), l’homme un X et un Y (XY).'},
+    {q:'Qu’est-ce qu’un caryotype?', o:['L’image des chromosomes d’une cellule, classés par paires','Une étape de la mitose','Une base de l’ADN','Un type de gamète'], e:'Le caryotype humain montre 23 paires de chromosomes.'},
+    {q:'À quoi sert la mitose?', o:['À la croissance et à la réparation des tissus','À produire des gamètes','À diviser par deux le nombre de chromosomes','À la fécondation'], e:'Quand tu grandis ou qu’une coupure guérit, tes cellules se divisent par mitose.'},
+    {q:'Que produit la mitose?', o:['2 cellules-filles identiques à la cellule-mère','4 cellules-filles différentes','2 cellules-filles avec 23 chromosomes','4 cellules-filles identiques'], e:'Les 2 cellules-filles ont les mêmes 46 chromosomes que la cellule-mère.'},
+    {q:'Que produit la méiose?', o:['4 cellules différentes, avec 23 chromosomes chacune','2 cellules identiques, avec 46 chromosomes','4 cellules identiques, avec 46 chromosomes','2 cellules, avec 23 chromosomes chacune'], e:'Deux divisions successives donnent 4 gamètes génétiquement différents.'},
+    {q:'Où se produit la méiose chez l’humain?', o:['Dans les testicules et les ovaires','Dans la peau','Dans le cœur','Dans toutes les cellules du corps'], e:'La méiose ne se produit que dans les organes reproducteurs, pour fabriquer les gamètes.'},
+    {q:'Pendant quelle phase de la mitose les chromosomes s’alignent-ils au centre de la cellule?', o:['La métaphase','La prophase','L’anaphase','La télophase'], e:'Métaphase : les chromosomes sont alignés à l’équateur (au milieu) de la cellule.'},
+    {q:'Que se passe-t-il pendant l’anaphase?', o:['Les chromatides sœurs se séparent et migrent vers les pôles opposés','Les chromosomes s’alignent au centre de la cellule','Deux nouveaux noyaux se forment','L’ADN se duplique'], e:'Anaphase : chaque chromatide part vers un pôle de la cellule.'},
+    {q:'Que se passe-t-il pendant la prophase?', o:['Les chromosomes se condensent et deviennent visibles','Les chromatides se séparent','La cellule se sépare en deux','Les chromosomes s’alignent au centre'], e:'Prophase : l’ADN s’enroule et les chromosomes deviennent visibles au microscope. La membrane du noyau disparaît.'},
+    {q:'Quel est l’ordre des phases de la mitose?', o:['Prophase → métaphase → anaphase → télophase','Métaphase → prophase → télophase → anaphase','Anaphase → métaphase → prophase → télophase','Prophase → anaphase → métaphase → télophase'], e:'Truc : P-M-A-T (Prophase, Métaphase, Anaphase, Télophase).'},
+    {q:'Quand l’ADN se duplique-t-il?', o:['Pendant l’interphase, avant la division','Pendant l’anaphase','Pendant la télophase','Seulement après la fécondation'], e:'Chaque chromosome est copié pendant l’interphase : il aura ensuite 2 chromatides.'},
+    {q:'Pourquoi les gamètes doivent-ils avoir la moitié des chromosomes?', o:['Pour que la fécondation redonne 46 chromosomes','Pour réparer les tissus plus vite','Pour que les cellules soient plus petites','Pour produire des cellules identiques'], e:'23 + 23 = 46 : le zygote retrouve le bon nombre de chromosomes.'},
+    {q:'Un spermatozoïde féconde un ovule. Combien de chromosomes a le zygote?', o:['46','23','92','69'], e:'Le spermatozoïde apporte 23 chromosomes et l’ovule 23 : le zygote en a 46.'},
+    {q:'Pourquoi deux frères qui ne sont pas de vrais jumeaux sont-ils différents?', o:['La méiose mélange les chromosomes : chaque gamète est unique','La mitose fait des erreurs à chaque division','Leur ADN change à la naissance','Ils n’ont pas reçu de chromosomes de leur mère'], e:'Chaque gamète reçoit un mélange différent de chromosomes paternels et maternels.'},
+    {q:'Une cellule de la peau a 46 chromosomes. Après une mitose, combien en a chaque cellule-fille?', o:['46','23','92','12'], e:'La mitose conserve le nombre de chromosomes : les cellules-filles sont identiques à la cellule-mère.'},
+    {q:'Qu’est-ce que la différenciation cellulaire?', o:['La spécialisation d’une cellule pour une fonction précise','La division d’une cellule en deux','La copie de l’ADN','La formation des gamètes'], e:'Une cellule de l’embryon peut devenir une cellule nerveuse, musculaire, sanguine…'},
+    {q:'Une cellule souche est…', o:['une cellule non spécialisée qui peut devenir différents types de cellules','une cellule nerveuse','un gamète','une cellule qui ne se divise jamais'], e:'On en trouve dans l’embryon et dans certains tissus, comme la moelle rouge des os.'}
+  ]};
+
+const ALL = [...SYS, FINAL, ...LAB, LABFIN, GEN]; // 0-7 corps · 8 boss du corps · 9-11 labo · 12 boss du labo · 13 génétique
 const isFinal=i=>i===8||i===12;
-const campOf=i=>i>=9?'lab':'body';
-const CAMP={body:{idx:[0,1,2,3,4,5,6,7,8],fin:8,badges:SYS}, lab:{idx:[9,10,11,12],fin:12,badges:LAB}};
+const campOf=i=>(i>=9&&i<=12)?'lab':'body';
+const CAMP={body:{idx:[0,1,2,3,4,5,6,7,13,8],fin:8,badges:[...SYS,GEN]}, lab:{idx:[9,10,11,12],fin:12,badges:LAB}};
 const wName=i=>i===8?'Révision finale : le corps':i===12?'Révision finale : le labo':ALL[i].nom;
 const wTitle=i=>i===8?'Le cœur du corps':i===12?'Le grand défi du labo':ALL[i].nom;
 const wShort=i=>i===8?'CŒUR':i===12?'DÉFI':ALL[i].court;
-const BOSSY={supreme:42,molecule:32,engrenage:28};
+const BOSSY={supreme:42,molecule:32,engrenage:28,chromosome:34};
 
 /* Décors des niveaux : ciel, décor de fond, sol, briques */
 const THEMES={
@@ -634,6 +687,7 @@ const THEMES={
   con:{sky:['#d8f1fb','#bfe6f5'], far:'#9fd3e8', far2:'#7fbfd8', deco:'flasks',  top:'#e8f4f8', mid:'#8fa6b3', dark:'#43566a', brick:'#c7d6de', mortar:'#5d707c', hard:'#7f96a4'},
   mat:{sky:['#e6f5d6','#cfeab5'], far:'#a8d880', far2:'#8cc460', deco:'atoms',   top:'#b9e08f', mid:'#6f9a48', dark:'#35541c', brick:'#8fbf5f', mortar:'#35541c', hard:'#5e8a36'},
   tec:{sky:['#ffe8c7','#ffd59e'], far:'#e0b070', far2:'#c99550', deco:'gears',   top:'#c3c9d2', mid:'#7d8590', dark:'#3a3f48', brick:'#9aa1ab', mortar:'#3a3f48', hard:'#6b727c'},
+  gen:{sky:['#f3e1ff','#e4c8ff'], far:'#d4adf5', far2:'#bb8ce6', deco:'dna',     top:'#e6b8ff', mid:'#9a5fc7', dark:'#4a2370', brick:'#b57fe0', mortar:'#4a2370', hard:'#7d47ad'},
   lab:{sky:['#0f2230','#173447'], far:'#245066', far2:'#1d4054', deco:'mix',     top:'#4fc3f7', mid:'#2a4a5c', dark:'#0c1a24', brick:'#356178', mortar:'#0c1a24', hard:'#28485a'}
 };
 
@@ -794,7 +848,7 @@ function drawHero(x,y,t,f){
 /* Globi en mode plateforme : boîte 14×20, (sx,sy) = coin haut-gauche à l’écran */
 function drawGlobi(sx,sy,t,p,flash){
   const cx=Math.round(sx+7), cy=Math.round(sy+9), face=p.face||1;
-  const sk=p.skin||{}, OL=flash||sk.OL||'#24305e', BODY=flash||sk.BODY||'#e4eafc', HI=flash||'#ffffff', NU=flash||sk.NU||'#7d4fc0', EYE=flash||'#14142b', FOOT=flash||sk.FOOT||'#3a2f6e', GOLD=flash||'#f8c537';
+  const sk=p.skin||{}, OL=flash||sk.OL||'#24305e', BODY=flash||(sk.rainbow?`hsl(${(t*90)%360},85%,82%)`:sk.BODY)||'#e4eafc', HI=flash||'#ffffff', NU=flash||sk.NU||'#7d4fc0', EYE=flash||sk.EYE||'#14142b', FOOT=flash||sk.FOOT||'#3a2f6e', GOLD=flash||'#f8c537';
   const run=p.onGround && Math.abs(p.vx)>12, ph=run?Math.floor(t*12)%2:0;
   if(!p.onGround){ R(cx-7,sy+14,5,4,FOOT); R(cx+2,sy+15,5,4,FOOT); }
   else { R(cx-7+(ph?2:0),sy+16,6,4,FOOT); R(cx+1-(ph?2:0),sy+16,6,4,FOOT); }
@@ -803,7 +857,7 @@ function drawGlobi(sx,sy,t,p,flash){
   const ex=cx+face*2;
   R(ex-4,cy-4,2,4,EYE); R(ex+2,cy-4,2,4,EYE); R(ex-4,cy-4,1,1,HI); R(ex+2,cy-4,1,1,HI);
   R(cx-7,cy,2,1,flash||'#f59ab0'); R(cx+5,cy,2,1,flash||'#f59ab0');
-  line(cx,cy-9,cx,cy-11,GOLD); line(cx,cy-11,cx-2,cy-13,GOLD); line(cx,cy-11,cx+2,cy-13,GOLD);
+  drawHat(p.hat||'antenne',cx,cy,face,t,flash);
 }
 function miniGlobi(x,y,t){ y+=Math.round(Math.sin(t*6)*1.5); disc(x,y,5,'#24305e'); disc(x,y,4,'#eef2ff'); R(x-2,y-2,1,2,'#14142b'); R(x+1,y-2,1,2,'#14142b'); R(x-1,y+3,3,1,'#7d4fc0'); }
 
@@ -882,6 +936,15 @@ const ENEMY={
     for(let k=0;k<6;k++){ const a=k*1.047+0.3; disc(x+Math.cos(a)*8,y+Math.sin(a)*8,2,p.b); }
     R(x-9,y-8,3,2,p.h);
     eyes(x-3,y-2,5,p); teeth(x-7,y+4,10,p);
+  },
+  chromosome(x,y,t,p){
+    const w=Math.sin(t*2)*0.12;
+    const arms=[[-1,-1],[1,-1],[-1,1],[1,1]], pt=(sx,sy,f)=>[x+sx*(3+f*13)+(sy<0?sx*w*f*14:0), y+sy*f*28];
+    for(const [sx,sy] of arms) for(let k=0;k<=14;k++){ const [cx,cy]=pt(sx,sy,k/14); disc(cx,cy,7,p.o); }
+    for(const [sx,sy] of arms) for(let k=0;k<=14;k++){ const [cx,cy]=pt(sx,sy,k/14); disc(cx,cy,6,p.a); }
+    for(const [sx,sy] of arms) for(const f of [0.45,0.72,0.9]){ const [cx,cy]=pt(sx,sy,f); R(cx-6,cy-1,13,2,p.b); }
+    for(const [sx,sy] of arms){ const [cx,cy]=pt(sx,sy,0.6); R(cx-3,cy-6,2,4,p.h); }
+    disc(x,y,10,p.o); disc(x,y,9,p.h); eyes(x-1,y-2,5,p); teeth(x-6,y+4,10,p);
   },
   becher(x,y,t,p){
     for(let i=0;i<4;i++){ const ph=(t*0.8+i*0.27)%1; ring(x-10+i*7, y-24-ph*18, 2, p.h); }
@@ -1061,17 +1124,17 @@ function buildLevel(idx,opt={}){
   for(let r=0;r<10;r++) grid[r][LW-1]='P';
   const sup=z.ennemi.type==='supreme';
   const p={x:2*TS+1,y:h[2]*TS-20,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,inv:0,jumping:false};
-  const pool = opt.demo ? [] : buildPool(idx);
+  const pool = opt.demo ? [] : buildPool(idx, opt.qrnd||Math.random);
   return {idx,z,th:THEMES[z.id],grid,h,W:LW,MAIN,arenaX:MAIN*TS,enemies,atps,cps,nQ:placed,qDone:0,atp:0,
     p,respawn:{x:p.x,y:p.y},cam:0,mode:'prep',bumps:{},fx:[],pool,pi:0,streak:0,n:0,medal:null,
     boss:{hp:z.hp||5,max:z.hp||5,started:false,dead:false,dying:0,x:(MAIN+15)*TS,y:10*TS-(BOSSY[z.ennemi.type]||24)}};
 }
-function buildPool(idx){
-  const z=ALL[idx];
-  if(idx===8) return shuffle(FINAL.q.concat(SYS.map(s=>s.q[Math.floor(Math.random()*s.q.length)])));
-  if(idx===12){ const a=[]; LAB.forEach(l=>{ a.push(...shuffle(l.q).slice(0,3)); (l.gens||[]).forEach(g=>a.push(g(Math.random))); }); return shuffle(a); }
-  const a=z.q.slice(); if(z.gens) for(let k=0;k<z.gens.length*2;k++) a.push(z.gens[k%z.gens.length](Math.random));
-  return shuffle(a);
+function buildPool(idx,rnd){
+  rnd=rnd||Math.random; const z=ALL[idx], sh=a=>shuffleR(a,rnd);
+  if(idx===8) return sh(FINAL.q.concat([...SYS,GEN].map(w=>w.q[Math.floor(rnd()*w.q.length)])));
+  if(idx===12){ const a=[]; LAB.forEach(l=>{ a.push(...sh(l.q).slice(0,3)); (l.gens||[]).forEach(g=>a.push(g(rnd))); }); return sh(a); }
+  const a=z.q.slice(); if(z.gens) for(let k=0;k<z.gens.length*2;k++) a.push(z.gens[k%z.gens.length](rnd));
+  return sh(a);
 }
 
 function drawTile(k,sx,sy,th,c,r,t){
@@ -1097,6 +1160,7 @@ function drawSky(th,cam,t){
   if(night){ for(let k=0;k<40;k++){ const sx=((k*53-cam*0.1)%W+W)%W, sy=14+(k*29)%80; if((Math.floor(t*2)+k)%5) R(sx,sy,1,1,k%3?'#ffffff':'#ffe66b'); } }
   else { const off=cam*0.2, i0=Math.floor(off/150)-1; for(let i=i0;i<i0+4;i++){ const s=((i%3)+3)%3; drawCloud(i*150-off+30,18+s*12); } }
   const P=110, off=cam*0.4, i0=Math.floor(off/P)-1, F=th.far, F2=th.far2;
+  if(th.deco==='dna'){ for(let x=0;x<W;x++){ const a=(x+off)*0.055, y1=78+Math.sin(a)*16, y2=78-Math.sin(a)*16; if(((x+Math.round(off))%9)===0) R(x,Math.min(y1,y2),1,Math.abs(y1-y2),F2); R(x,y1,1,3,Math.cos(a)>0?F:F2); R(x,y2,1,3,Math.cos(a)>0?F2:F); } }
   if(th.deco==='vessels'){ for(let x=0;x<W;x++){ R(x,60+Math.sin((x+off)*0.035)*8,1,10,F); R(x,102+Math.sin((x+off)*0.03+2)*7,1,14,F2); } }
   for(let i=i0;i<i0+5;i++){
     const X=i*P-off, s=((i%7)+7)%7;
@@ -1122,7 +1186,7 @@ function drawTiles(L,cam,now,t,pl){
     let sx=c*TS-cam, sy=r*TS-VY;
     const key=c+','+r, b=L.bumps[key];
     if(b){ const p=(now-b)/220; if(p<1) sy-=Math.round(Math.sin(p*Math.PI)*5); else delete L.bumps[key]; }
-    if(pl && (k==='A'||k==='B'||k==='C')) drawAnsTile(k,sx,sy,L.rowAt[key],pl.id); else drawTile(k,sx,sy,L.th,c,r,t);
+    drawTile(pl && k==='S' && pl.used && pl.used.has(key)?'U':k,sx,sy,L.th,c,r,t);
   }
 }
 
@@ -1130,20 +1194,20 @@ function drawTiles(L,cam,now,t,pl){
    ÉTAT DU JEU
    ========================================================= */
 const SAVE_KEY='globi-odyssee-v1';
-function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,labWon:false,atp:0,best:{},raceBest:{},camp:'body'}; }
-function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.level) return Object.assign(fresh(),s); }catch(e){} return null; }
+function fresh(){ return {level:1,xp:0,beaten:[],vit:1,correct:0,total:0,finalWon:false,labWon:false,atp:0,best:{},raceBest:{},camp:'body',coins:0,look:{color:'classique',hat:'antenne',trail:'aucune'},owned:[]}; }
+function loadSave(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s && s.level){ const g=Object.assign(fresh(),s); if(s.coins==null) g.coins=s.atp||0; g.look=Object.assign({color:'classique',hat:'antenne',trail:'aucune'},s.look||{}); return g; } }catch(e){} return null; }
 function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(G)); }catch(e){} }
 let G=loadSave()||fresh();
 const maxHearts=()=>3; // cœurs au départ de chaque niveau (on peut en gagner plus)
 const xpNeed=()=>30+G.level*20;
 let hearts=maxHearts();
 function isBeaten(i){ return i===8 ? G.finalWon : i===12 ? !!G.labWon : G.beaten.includes(ALL[i].id); }
-function isUnlocked(i){ if(i===8) return SYS.every(z=>G.beaten.includes(z.id)); if(i===12) return LAB.every(z=>G.beaten.includes(z.id)); return true; }
+function isUnlocked(i){ if(i===8) return G.finalWon || CAMP.body.badges.every(z=>G.beaten.includes(z.id)); if(i===12) return LAB.every(z=>G.beaten.includes(z.id)); return true; }
 const camp=()=>CAMP[G.camp==='lab'?'lab':'body'];
 function nextIdx(){ const c=camp(); for(const i of c.idx) if(isUnlocked(i)&&!isBeaten(i)) return i; return c.fin; }
 const badgeCount=list=>list.filter(z=>G.beaten.includes(z.id)).length;
 function labPct(){ return Math.round((badgeCount(LAB)+(G.labWon?1:0))/4*100); }
-function healPct(){ return G.finalWon?100:Math.round(G.beaten.length/9*100); }
+function healPct(){ return G.finalWon?100:Math.round(badgeCount(CAMP.body.badges)/10*100); }
 function addXP(n){ G.xp+=n; let up=false; while(G.xp>=xpNeed()){ G.xp-=xpNeed(); G.level++; up=true; } return up; }
 const chipColor=i=>isFinal(i)?'#ff4fa3':ALL[i].color;
 
@@ -1183,7 +1247,7 @@ function overlays(){
   $('#logo').hidden=scene!=='title';
   $('#tag').hidden=scene!=='prep';
   $('#ecard').hidden=!(scene==='level' && LV && LV.boss.started && !LV.boss.dead);
-  $('#hud').hidden=(scene==='title'||scene==='intro'||scene==='race'||scene==='racemenu');
+  $('#hud').hidden=(scene==='title'||scene==='intro'||scene==='race'||scene==='racemenu'||scene==='shop');
 }
 function setPanel(html,focusSel){
   panel.innerHTML=html;
@@ -1214,10 +1278,11 @@ function toTitle(){
   if(RC && RC.mode==='online') netClose();
   RC=null; scene='title'; LV=null; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('title'); initParts('bubble',10);
   setPanel(`<p class="say">Choisis ton aventure!</p>
-    <div class="modes">
-      <button class="btn mode" data-act="goBody"><b>Le corps humain</b><span>8 systèmes et un boss final · ${badgeCount(SYS)}/8 insignes${G.finalWon?' · corps guéri':''}</span></button>
+    <div class="modes two">
+      <button class="btn mode" data-act="goBody"><b>Le corps humain</b><span>8 systèmes, la génétique et un boss final · ${badgeCount(CAMP.body.badges)}/9 insignes${G.finalWon?' · corps guéri':''}</span></button>
       <button class="btn mode" data-act="goLab"><b>Labo et atelier</b><span>Concentrations, univers matériel et univers technologique · ${badgeCount(LAB)}/3 insignes${G.labWon?' · labo sauvé':''}</span></button>
-      <button class="btn mode" data-act="raceMenu"><b>Course multijoueur</b><span>À 2 sur le même appareil, en ligne ou contre la montre</span></button>
+      <button class="btn mode" data-act="raceMenu"><b>Course multijoueur</b><span>Même monde, même gardien : le plus rapide gagne. À 2, en ligne ou contre la montre</span></button>
+      <button class="btn mode" data-act="shop"><b>Boutique de Globi</b><span>${G.coins||0} ATP · couleurs, chapeaux et traînées pour personnaliser ton globule</span></button>
     </div>
     <div class="row between"><span class="hint">Niveau ${G.level} · progression sauvegardée sur cet appareil. Active le son!</span><button class="btn small ghost" data-act="newGame">Effacer ma progression</button></div>`,'[data-act=goBody]');
 }
@@ -1234,7 +1299,7 @@ function goBody(){
     'Tu es Globi, un globule blanc d’élite. Tu cours, tu sautes et tu lances des anticorps en forme de Y.',
     'Chaque système du corps est un niveau. Frappe les blocs du savoir par en dessous pour répondre aux questions.',
     'Saute sur les petits pathogènes pour les écraser, ramasse l’ATP pour battre ton record, et affronte le gardien au bout du niveau.',
-    'Gagne les 8 insignes pour atteindre le Pathogène Suprême. Max compte sur toi!'
+    'Gagne les 9 insignes (8 systèmes et la génétique) pour atteindre le Pathogène Suprême. Max compte sur toi!'
   ],()=>{ G.introSeen=true; save(); toMap(0); },'Dre Cortex');
 }
 function goLab(){
@@ -1278,6 +1343,7 @@ function prep(){
 function startLevel(rebuild){
   if(rebuild||!LV) LV=buildLevel(sel);
   hearts=maxHearts(); updateHUD(); Q=null; DLG=null;
+  Object.assign(LV.p,lookOf());
   LV.mode='play'; scene='level'; overlays(); initParts(LV.z.part,12);
   A.play('level');
   for(const k in keys) keys[k]=false;
@@ -1318,7 +1384,7 @@ function bossIntro(){
 function bossQuestion(){ const L=LV; L.mode='boss'; L.n++; Q={mode:'boss',cur:nextQ(),answered:false,t0:performance.now()}; renderQuestion(); }
 
 function addATP(n,wx,wy,quiet){
-  const L=LV; L.atp+=n; G.atp+=n; if(!quiet) A.sfx('atp');
+  const L=LV; L.atp+=n; G.atp+=n; G.coins=(G.coins||0)+n; if(!quiet) A.sfx('atp');
   save();
 }
 const INV=2; // durée d’invincibilité (s) = durée exacte du clignotement
@@ -1404,14 +1470,14 @@ function levelClear(){
   if(first){ G.beaten.push(z.id); G.vit++; }
   if(fin){ if(L.idx===8) G.finalWon=true; else G.labWon=true; }
   save(); updateHUD();
-  const all=cp.badges.every(s=>G.beaten.includes(s.id)), left=cp.badges.length-badgeCount(cp.badges), bossName=ALL[cp.fin].ennemi.nom;
+  const all=cp.badges.every(s=>G.beaten.includes(s.id)), left=cp.badges.length-badgeCount(cp.badges), bossLow=cp.fin===8?'le Pathogène Suprême':'le Dérégleur', bossCap=bossLow[0].toUpperCase()+bossLow.slice(1);
   let html=`<h2>Niveau terminé!</h2><p>${z.ennemi.nom} est vaincu. Blocs du savoir : ${L.qDone} / ${L.nQ} · ATP ramassé : ${L.atp}${rec?' · <b class="gold">nouveau record!</b>':` (record : ${G.best[z.id]})`}.</p>`;
   if(fin){ html+=`<p>${L.idx===8?'Le corps de Max retrouve son équilibre…':'Le labo et l’atelier sont de nouveau en ordre…'}</p><div class="row end"><button class="btn" data-act="ending" data-arg="${campOf(L.idx)}">Voir la fin ▶</button></div>`; }
   else{
     if(first) html+=`<div class="reward"><span class="medal" style="--c:${z.color}"></span><div><b class="gold">Insigne : ${z.nom}</b><br>+1 Vitamine C ajoutée à ton sac.</div></div>`;
     else html+=`<p>Entraînement réussi : ton XP a augmenté.</p>`;
-    if(first && all) html+=`<p class="warn">Alerte! ${bossName} s’est réveillé${L.idx<8?' au cœur du corps de Max':' dans le grand défi du labo'}…</p>`;
-    else if(first) html+=`<p>Encore <b class="gold">${left} insigne${left>1?'s':''}</b> à gagner avant d’affronter ${bossName}.</p>`;
+    if(first && all) html+=`<p class="warn">Alerte! ${bossCap} s’est réveillé${cp.fin===8?' au cœur du corps de Max':' dans le grand défi du labo'}…</p>`;
+    else if(first) html+=`<p>Encore <b class="gold">${left} insigne${left>1?'s':''}</b> à gagner avant d’affronter ${bossLow}.</p>`;
     html+=`<div class="row end"><button class="btn" data-act="mapNext">Retour à la carte ▶</button></div>`;
   }
   setPanel(html);
@@ -1442,7 +1508,7 @@ function ending(c){
   endCamp=c==='lab'?'lab':'body';
   scene='end'; LV=null; overlays(); A.play('title'); hearts=maxHearts(); updateHUD(); fireworks=[];
   const pct=G.total?Math.round(G.correct/G.total*100):0, lab=endCamp==='lab';
-  setPanel(`<h2>${lab?'Le labo est sauvé!':'Max est guéri!'}</h2><p>${lab?'Grâce à toi, les solutions sont bien préparées, la matière se comporte normalement et les machines tournent dans le bon sens.':'Grâce à toi, les 9 gardiens sont vaincus. Tous les systèmes du corps fonctionnent de nouveau ensemble.'}</p>
+  setPanel(`<h2>${lab?'Le labo est sauvé!':'Max est guéri!'}</h2><p>${lab?'Grâce à toi, les solutions sont bien préparées, la matière se comporte normalement et les machines tournent dans le bon sens.':'Grâce à toi, les 10 gardiens sont vaincus. Tous les systèmes du corps fonctionnent de nouveau ensemble.'}</p>
     <div class="stats"><div class="stat">Niveau<b>${G.level}</b></div><div class="stat">Bonnes réponses<b>${G.correct} / ${G.total}</b></div><div class="stat">Précision<b>${pct} %</b></div><div class="stat">ATP ramassé<b>${G.atp}</b></div></div>
     <div class="row"><button class="btn" data-act="map">Carte (entraînement libre)</button><button class="btn ghost" data-act="home">Accueil</button></div>`);
 }
@@ -1492,6 +1558,7 @@ function updateLevel(dt,now){
   if(ctrl && jumpBuf>0 && p.coyote>0){ p.vy=-((keys.run&&Math.abs(p.vx)>100)?420:405); p.onGround=false; p.coyote=0; jumpBuf=0; p.jumping=true; A.sfx('jump'); }
   if(p.jumping && !keys.jump && p.vy<-130) p.vy=-130;
   p.vy=Math.min(430,p.vy+930*dt);
+  const prevBot=p.y+p.h, fallV=p.vy; // position avant le déplacement : sert à détecter un écrasement
   moveX(p,dt);
   if(L.boss.started && p.x<L.arenaX){ p.x=L.arenaX; p.vx=0; }
   const hit=moveY(p,dt);
@@ -1508,7 +1575,7 @@ function updateLevel(dt,now){
     if(e.onGround){ const fx=e.vx<0?e.x-1:e.x+e.w+1; if(!solid(Math.floor(fx/TS),Math.floor((e.y+e.h+2)/TS))) e.vx=-e.vx; }
     if(e.y>ROWS*TS+40){ e.alive=false; continue; }
     if(ctrl && overlap(p,e,2)){
-      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; const hold=keys.jump||jumpBuf>0; p.vy=hold?-470:-320; p.jumping=hold; jumpBuf=0; A.sfx('stomp'); addATP(1,e.x+7,e.y,true); L.fx.push({k:'pop',text:'+1 ATP',x:e.x+7,y:e.y-8,c:'#ffd23f',t0:now,dur:800,size:8}); }
+      if(fallV>0 && prevBot<=e.y+6){ e.squash=0.45; const hold=keys.jump||jumpBuf>0; p.vy=hold?-470:-320; p.jumping=hold; jumpBuf=0; A.sfx('stomp'); addATP(1,e.x+7,e.y,true); L.fx.push({k:'pop',text:'+1 ATP',x:e.x+7,y:e.y-8,c:'#ffd23f',t0:now,dur:800,size:8}); }
       else hurt(e.x+7,e);
       if(L.mode==='ko') return;
     }
@@ -1570,6 +1637,7 @@ function drawLevel(L,t,now,dt){
   if(L.medal) drawMedal(L.medal.x-cam,L.medal.y-VY,t,L.z);
   const p=L.p, hf=L.fx.find(f=>f.k==='hflash'&&now>=f.t0&&now<f.t0+f.dur);
   const blink=p.inv>0 && Math.floor(now/(p.inv<0.5?50:90))%2===0;
+  trailFx(p,cam,now);
   if(L.mode==='ko'){ ctx.save(); ctx.globalAlpha=0.5; drawGlobi(p.x-cam,p.y-VY,t,{face:1,onGround:true,vx:0},null); ctx.restore(); }
   else if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,(hf&&Math.floor((now-hf.t0)/70)%2===0)?'#ff5a6e':null);
   drawFx(L,now,cam);
@@ -1583,7 +1651,7 @@ function drawLevel(L,t,now,dt){
 }
 
 /* ---------- Carte du corps ---------- */
-const LEG=[{h:'NUTRITION',y:10},{i:0,y:22},{i:1,y:32},{i:2,y:42},{i:3,y:52},{i:4,y:62},{h:'RELATION',y:80},{i:5,y:92},{i:6,y:102},{h:'REPRODUCTION',y:120},{i:7,y:132},{h:'RÉVISION',y:150},{i:8,y:162}];
+const LEG=[{h:'NUTRITION',y:7},{i:0,y:18},{i:1,y:27},{i:2,y:36},{i:3,y:45},{i:4,y:54},{h:'RELATION',y:68},{i:5,y:79},{i:6,y:88},{h:'REPRODUCTION',y:102},{i:7,y:113},{h:'VIVANT',y:127},{i:13,y:138},{h:'RÉVISION',y:152},{i:8,y:163}];
 function bodyShape(c,g){
   disc(160,21,13+g,c); R(155-g,32,10+2*g,12,c);
   R(137-g,42-g,46+2*g,66+g,c); disc(140,50,8+g,c); disc(180,50,8+g,c);
@@ -1647,12 +1715,13 @@ function drawBodyMap(t,now,dt){
   ell(150,57,7,11,'#f2a1a6'); ell(170,57,7,11,'#f2a1a6'); disc(165,63,4,'#d23c4f');
   ell(154,83,8,6,'#e8a24a'); ell(161,97,13,6,'#e6b77a'); ell(149,93,3,5,'#b4475a'); ell(172,93,3,5,'#b4475a');
   R(148,122,3,44,'#fff3e8'); R(169,122,3,44,'#fff3e8');
-  for(let i=0;i<8;i++){
-    const [ax,ay]=ALL[i].node, [bx,by]=ALL[i+1].node, d=Math.hypot(bx-ax,by-ay), n=Math.floor(d/3);
+  const ORD=CAMP.body.idx;
+  for(let j=0;j<ORD.length-1;j++){ const i=ORD[j];
+    const [ax,ay]=ALL[i].node, [bx,by]=ALL[ORD[j+1]].node, d=Math.hypot(bx-ax,by-ay), n=Math.floor(d/3);
     const col=isBeaten(i)?'#f8c537':'#3a4a90';
     for(let k=1;k<n;k+=2) R(ax+(bx-ax)*k/n,ay+(by-ay)*k/n,1,1,col);
   }
-  ALL.slice(0,9).forEach((z,i)=>{
+  CAMP.body.idx.forEach(i=>{ const z=ALL[i];
     const [x,y]=z.node, un=isUnlocked(i);
     if(!un){ disc(x,y,5,'#0b0f2a'); disc(x,y,4,'#2a3366'); R(x-1,y-1,3,3,'#46508a'); return; }
     if(i===sel) ring(x,y,8+Math.round(1+Math.sin(t*6)),'#ffffff');
@@ -1665,13 +1734,13 @@ function drawBodyMap(t,now,dt){
   LEG.forEach(l=>{
     if(l.h){ txt(l.h,6,l.y,'#f8c537',7); return; }
     const z=ALL[l.i], un=isUnlocked(l.i), nm=(l.i===8&&!un)?'???':z.court;
-    if(l.i===sel){ R(3,l.y-1,98,10,'#25347a'); R(5,l.y+2,2,1,'#fff'); R(5,l.y+3,3,1,'#fff'); R(5,l.y+4,2,1,'#fff'); }
+    if(l.i===sel){ R(3,l.y-1,98,9,'#25347a'); R(5,l.y+2,2,1,'#fff'); R(5,l.y+3,3,1,'#fff'); R(5,l.y+4,2,1,'#fff'); }
     R(11,l.y+1,6,6,un?(l.i===8?'#ff4fa3':z.color):'#2a3366');
     txt(nm,21,l.y-1,l.i===sel?'#ffffff':un?'#d6dcff':'#6a74b0',7);
     if(isBeaten(l.i)) star(92,l.y+1,'#f8c537');
   });
   txt('INSIGNES',214,8,'#f8c537',7);
-  SYS.forEach((z,k)=>{ const cx=226+(k%4)*24, cy=31+Math.floor(k/4)*22;
+  CAMP.body.badges.forEach((z,k)=>{ const cx=222+(k%5)*20, cy=28+Math.floor(k/5)*21;
     if(G.beaten.includes(z.id)){ disc(cx,cy,9,'#7a5a10'); disc(cx,cy,8,'#f8c537'); disc(cx,cy,6,z.color); star(cx-2,cy-2,'#ffffff'); }
     else { disc(cx,cy,8,'#0b0f2a'); disc(cx,cy,7,'#1a2456'); }
   });
@@ -1699,7 +1768,7 @@ function drawTitle(t,now,dt){
   for(const a of L.atps){ const sx=a.x-cam; if(sx>-8&&sx<W+8) drawATP(sx,a.y-VY,t); }
   const col=Math.floor((cam+97)/TS), gh=L.h[col]*TS;
   const ph=(t%1.6)/1.6, hop=ph<0.45?Math.sin(ph/0.45*Math.PI)*34:0;
-  drawGlobi(90,gh-20-VY-hop,t,{face:1,onGround:hop===0,vx:50},null);
+  drawGlobi(90,gh-20-VY-hop,t,Object.assign({face:1,onGround:hop===0,vx:50},lookOf()),null);
 }
 let fireworks=[], lastFw=0;
 function drawEnding(t,now,dt){
@@ -1707,7 +1776,7 @@ function drawEnding(t,now,dt){
   if(now-lastFw>600){ lastFw=now; fireworks.push({x:40+Math.random()*240,y:20+Math.random()*70,t0:now,c:SYS[Math.floor(Math.random()*8)].color}); }
   fireworks=fireworks.filter(f=>now-f.t0<1200);
   fireworks.forEach(f=>{ const p=(now-f.t0)/1200; for(let k=0;k<14;k++){ const a=k*0.449, r=p*30; R(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r+p*p*14,2,2,f.c); } });
-  const ML=endCamp==='lab'?LAB:SYS; ML.forEach((z,k)=>{ const a=t*0.8+k*(6.283/ML.length), cx=160+Math.cos(a)*62, cy=98+Math.sin(a)*34; disc(cx,cy,8,'#7a5a10'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#fff'); });
+  const ML=endCamp==='lab'?LAB:CAMP.body.badges; ML.forEach((z,k)=>{ const a=t*0.8+k*(6.283/ML.length), cx=160+Math.cos(a)*62, cy=98+Math.sin(a)*34; disc(cx,cy,8,'#7a5a10'); disc(cx,cy,7,z.color); star(cx-2,cy-2,'#fff'); });
   ctx.save(); ctx.translate(160,100); ctx.scale(2,2); drawHero(0,0,t,null); ctx.restore();
 }
 
@@ -1717,7 +1786,7 @@ function openModal(html){ if(modal.hidden) lastFocus=document.activeElement; for
 function closeModal(){ modal.hidden=true; if(scene==='level' && LV && (LV.mode==='play'||LV.mode==='walk')){ try{ cv.focus({preventScroll:true}); }catch(e){} } else if(lastFocus && document.contains(lastFocus)) lastFocus.focus({preventScroll:true}); }
 function codexList(){
   openModal(`<h2 id="mTitle">Codex des systèmes</h2><p class="hint">Toutes les fiches des systèmes sont disponibles. Relis-les avant les niveaux!</p>
-    <div class="codex">${ALL.map((z,i)=>isUnlocked(i)
+    <div class="codex">${[...CAMP.body.idx,...CAMP.lab.idx].map(i=>[ALL[i],i]).map(([z,i])=>isUnlocked(i)
       ?`<button class="btn cx" data-act="cxView" data-arg="${i}"><span class="chip" style="--c:${chipColor(i)}"></span>${wName(i)}${isBeaten(i)?' ★':''}</button>`
       :`<button class="btn cx" disabled><span class="chip" style="--c:#2a3366"></span>??? (verrouillé)</button>`).join('')}</div>
     <div class="row end"><button class="btn" data-act="closeModal">${scene==='level'?'Reprendre ▶':'Fermer'}</button></div>`);
@@ -1729,7 +1798,7 @@ function cxView(i,solo){
 }
 function help(){
   openModal(`<h2 id="mTitle">Comment jouer</h2>
-    <p>Deux aventures : <b>le corps humain</b> (8 systèmes) et <b>labo et atelier</b> (concentrations, univers matériel, univers technologique). Chaque monde est un niveau de plateforme. La <b>course multijoueur</b> se joue à 2 sur le même appareil, en ligne ou contre la montre.</p>
+    <p>Deux aventures : <b>le corps humain</b> (8 systèmes et la génétique) et <b>labo et atelier</b> (concentrations, univers matériel, univers technologique). Chaque monde est un niveau de plateforme. La <b>course multijoueur</b> se joue à 2 sur le même appareil, en ligne ou contre la montre.</p>
     <p>Frappe les blocs du savoir (avec une ampoule) par en dessous : une question apparaît. Bonne réponse : +1 cœur, +10 XP et +3 ATP. Erreur : tu perds un cœur.</p>
     <p>Saute sur les petits pathogènes pour les écraser : garde le bouton de saut enfoncé pour rebondir très haut! Si tu les touches de côté ou si tu tombes dans un trou, tu perds un cœur et tu clignotes 2 secondes : tant que tu clignotes, tu es invincible. Les drapeaux verts sont des points de contrôle : si tu tombes dans un trou ou si tu es K.O., tu repars du dernier drapeau touché.</p>
     <p>Au bout du niveau, le gardien t’attend : chaque bonne réponse lui lance un anticorps. Trois bonnes réponses de suite : coups critiques! Ramasse ensuite l’insigne.</p>
@@ -1767,13 +1836,17 @@ const ACT={
   prevZone(){ moveSel(-1); }, nextZone(){ moveSel(1); },
   ending(c){ ending(c); },
   raceMenu(){ A.sfx('select'); raceMenu(); },
-  raceTheme(id){ raceTheme=id; try{ localStorage.setItem(SAVE_KEY+'-rtheme',id); }catch(e){} A.sfx('select'); raceMenu(); const b=panel.querySelector(`[data-act=raceTheme][data-arg=${id}]`); if(b) b.focus({preventScroll:true}); },
-  raceLocal(){ A.sfx('confirm'); startRace('local',(Math.random()*1e9)|0,raceTheme); },
-  raceSolo(){ A.sfx('confirm'); startRace('solo',(Math.random()*1e9)|0,raceTheme); },
-  raceOnline(){ A.sfx('select'); netMenu(); },
+  shop(){ A.sfx('select'); shopOpen(); },
+  shopTab(c){ shopTab(c); },
+  shopPick(id){ shopPick(id); },
+  shopBuy(){ shopBuy(); },
+  shopEquip(){ shopEquip(); },
+  raceLocal(){ A.sfx('confirm'); startRace('local',(Math.random()*1e9)|0,raceSelWorld()); },
+  raceSolo(){ A.sfx('confirm'); startRace('solo',(Math.random()*1e9)|0,raceSelWorld()); },
+  raceOnline(){ A.sfx('select'); raceSelWorld(); netMenu(); },
   netHost(){ A.sfx('confirm'); netHost(); },
   netJoin(){ A.sfx('confirm'); netJoin(); },
-  raceAgain(){ A.sfx('confirm'); if(RC&&RC.mode==='online'){ if(NET.role==='host') hostGo(); } else startRace(RC?RC.mode:'solo',(Math.random()*1e9)|0,raceTheme); },
+  raceAgain(){ A.sfx('confirm'); if(RC&&RC.mode==='online'){ if(NET.role==='host') hostGo(); } else startRace(RC?RC.mode:'solo',(Math.random()*1e9)|0,raceWorld); },
   raceQuit(){ A.sfx('select'); raceMenu(); },
   codex(){ A.sfx('select'); codexList(); },
   cxView(i){ A.sfx('select'); cxView(+i); },
@@ -1804,8 +1877,9 @@ function raceKey(code){ if(!RC) return null; if(RC.mode==='local'){ if(RK1[code]
 function racePress(pi,a){ const p=RC&&RC.P[pi]; if(!p) return; if(a==='jump'&&!p.k.jump) p.jb=0.12; p.k[a]=true; }
 document.addEventListener('keydown',e=>{
   if(!modal.hidden){ if(e.key==='Escape') closeModal(); return; }
+  if(scene==='race' && RC && !RC.finished && !e.repeat){ const d=e.code.replace('Numpad','Digit'), m1={Digit1:0,Digit2:1,Digit3:2,Digit4:3}, m2={Digit7:0,Digit8:1,Digit9:2,Digit0:3}; if(m1[d]!=null){ e.preventDefault(); raceAnswer(0,m1[d]); return; } if(RC.mode==='local' && m2[d]!=null){ e.preventDefault(); raceAnswer(1,m2[d]); return; } }
   if(scene==='race' && RC){ const rk=raceKey(e.code); if(rk && !(document.activeElement && document.activeElement.tagName==='BUTTON' && e.code==='Space' && RC.finished)){ e.preventDefault(); if(!RC.finished){ if(!e.repeat) racePress(rk[0],rk[1]); else RC.P[rk[0]].k[rk[1]]=true; } return; } }
-  if(document.activeElement && document.activeElement.tagName==='INPUT'){ if(e.key==='Enter' && document.activeElement.id==='netCodeIn'){ e.preventDefault(); ACT.netJoin(); } return; }
+  if(document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName)){ if(e.key==='Enter' && document.activeElement.id==='netCodeIn'){ e.preventDefault(); ACT.netJoin(); } return; }
   const act=KEYMAP[e.code];
   if(playing() && act){ e.preventDefault(); if(!e.repeat) pressGame(act); else keys[act]=true; return; }
   if(scene==='level' && Q && !Q.answered && !DLG){
@@ -1845,13 +1919,14 @@ document.querySelectorAll('[data-key]').forEach(el=>{
   el.addEventListener('click',e=>e.preventDefault());
 });
 
-document.querySelectorAll('[data-rk]').forEach(el=>{
-  const [pi,a]=el.dataset.rk.split(':'), n=+pi;
-  const down=e=>{ e.preventDefault(); A.init(); el.classList.add('on'); try{ el.setPointerCapture(e.pointerId); }catch(_){} if(scene==='race'&&RC) racePress(n,a); };
-  const up=()=>{ el.classList.remove('on'); if(RC&&RC.P[n]) RC.P[n].k[a]=false; };
-  el.addEventListener('pointerdown',down); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('lostpointercapture',up);
-  el.addEventListener('contextmenu',e=>e.preventDefault()); el.addEventListener('click',e=>e.preventDefault());
-});
+(()=>{ const rt=$('#rtouch');
+  rt.addEventListener('pointerdown',e=>{ const b=e.target.closest('button'); if(!b) return; e.preventDefault(); A.init(); b.classList.add('on');
+    if(b.dataset.ra){ const [pi,k]=b.dataset.ra.split(':').map(Number); raceAnswer(pi,k); return; }
+    if(b.dataset.rk){ const [pi,a]=b.dataset.rk.split(':'); try{ b.setPointerCapture(e.pointerId); }catch(_){} if(scene==='race'&&RC) racePress(+pi,a); } });
+  const up=e=>{ const b=e.target.closest&&e.target.closest('button'); if(!b) return; b.classList.remove('on'); if(b.dataset.rk&&RC){ const [pi,a]=b.dataset.rk.split(':'); const pl=RC.P[+pi]; if(pl) pl.k[a]=false; } };
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>rt.addEventListener(ev,up));
+  rt.addEventListener('contextmenu',e=>e.preventDefault()); rt.addEventListener('click',e=>e.preventDefault());
+})();
 // le son démarre au premier geste
 const unlock=()=>{ A.init(); window.removeEventListener('pointerdown',unlock,true); window.removeEventListener('keydown',unlock,true); };
 window.addEventListener('pointerdown',unlock,true); window.addEventListener('keydown',unlock,true);
@@ -1859,121 +1934,110 @@ try{ if(localStorage.getItem(SAVE_KEY+'-mute')==='1'){ A.setMuted(true); $('#pSo
 
 
 /* =========================================================
-   COURSE MULTIJOUEUR — le plus rapide au drapeau gagne
+   COURSE MULTIJOUEUR — même monde, même gardien : le plus rapide gagne
    ========================================================= */
-const RTHEMES=[
-  {id:'corps', nom:'Le corps humain', vis:'res', foe:()=>SYS[0].ennemi, src:()=>SYS.flatMap(s=>s.q)},
-  {id:'con', nom:'Les concentrations', vis:'con', foe:()=>LAB[0].ennemi, src:()=>LAB[0].q.concat(GEN_CON,GEN_CON)},
-  {id:'mat', nom:'L’univers matériel', vis:'mat', foe:()=>LAB[1].ennemi, src:()=>LAB[1].q.concat(GEN_MAT,GEN_MAT)},
-  {id:'tec', nom:'L’univers technologique', vis:'tec', foe:()=>LAB[2].ennemi, src:()=>LAB[2].q.slice()},
-  {id:'mix', nom:'Tout mélangé', vis:'lym', foe:()=>SYS[7].ennemi, src:()=>SYS.flatMap(s=>s.q).concat(LAB.flatMap(l=>l.q.concat(l.gens||[])))}
-];
 const SKINS=[{OL:'#24305e',BODY:'#e4eafc',NU:'#7d4fc0',FOOT:'#3a2f6e',tag:'#9fd8ff',nom:'Joueur 1 (blanc)'},{OL:'#5a2410',BODY:'#ffe2c6',NU:'#e0602a',FOOT:'#7a3414',tag:'#ffb347',nom:'Joueur 2 (orange)'}];
-const ANS_COL=['#e8455a','#f2c230','#3fbf6f'];
-let RC=null, raceTheme='mix', raceSeedLast=0;
-try{ raceTheme=localStorage.getItem(SAVE_KEY+'-rtheme')||'mix'; }catch(e){}
+const ANS_COL=['#e8455a','#f2c230','#3fbf6f','#4f8cf5'];
+let RC=null, raceWorld=0;
+try{ const v=localStorage.getItem(SAVE_KEY+'-rworld'); if(v!==null && ALL[+v]) raceWorld=+v; }catch(e){}
 const shuffleR=(a,rnd)=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
-const themeOf=id=>RTHEMES.find(t=>t.id===id)||RTHEMES[4];
 const fmtT=ms=>(ms/1000).toLocaleString('fr-CA',{minimumFractionDigits:1,maximumFractionDigits:1})+' s';
-
-function raceQuestion(item,rnd){
-  const q=typeof item==='function'?item(rnd):item;
-  const d=shuffleR(q.o.slice(1),rnd).slice(0,2), opts=shuffleR([q.o[0],...d],rnd);
-  return {q:q.q, e:q.e, opts, good:opts.indexOf(q.o[0]), txt:q.o[0]};
-}
-function buildRace(seed,themeId){
-  const rnd=mulberry32(seed), ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)), th=themeOf(themeId), src=th.src();
-  const NR=5, SP=30, START=12, MAIN=START+NR*SP+4, LW=MAIN+16;
-  const h=new Array(LW).fill(10), rows=[], used=new Set();
-  let x=START, cur=10;
-  const step=()=>{ cur=Math.max(8,Math.min(10,cur+(rnd()<0.5?-1:1))); };
-  for(let k=0;k<NR;k++){
-    const zEnd=x+SP-14;
-    while(x<zEnd){
-      const r=rnd();
-      if(r<0.3 && zEnd-x>=6){ const n=ri(2,3); for(let i=0;i<n;i++) h[x++]=99; step(); for(let i=0;i<3&&x<zEnd;i++) h[x++]=cur; }
-      else if(r<0.55){ step(); for(let i=0;i<4&&x<zEnd;i++) h[x++]=cur; }
-      else for(let i=0;i<4&&x<zEnd;i++) h[x++]=cur;
-    }
-    const z0=x; for(let i=0;i<14;i++) h[x++]=cur;
-    let qi=0, tries=0; do{ qi=Math.floor(rnd()*src.length); tries++; }while(used.has(qi) && tries<50); used.add(qi);
-    rows.push({cols:[z0+3,z0+6,z0+9], r:cur-4, x0:z0*TS, x1:(z0+12)*TS, q:raceQuestion(src[qi],rnd), res:{}});
-  }
-  while(x<LW) h[x++]=cur;
-  const grid=Array.from({length:ROWS},()=>new Array(LW).fill('.'));
-  for(let c=0;c<LW;c++){ if(h[c]>=ROWS) continue; grid[h[c]][c]='G'; for(let r=h[c]+1;r<ROWS;r++) grid[r][c]='D'; }
-  const rowAt={};
-  rows.forEach(rw=>rw.cols.forEach((c,i)=>{ grid[rw.r][c]='ABC'[i]; rowAt[c+','+rw.r]=rw; }));
-  for(let r=0;r<10;r++) grid[r][LW-1]='P';
-  const enemies=[];
-  for(let k=0;k<NR;k++){ const base=START+k*SP; for(let t=0;t<12;t++){ const c=base+ri(3,SP-17); if(h[c]<99&&h[c-1]===h[c]&&h[c+1]===h[c]){ enemies.push({x:c*TS+1,y:h[c]*TS-12,w:14,h:12,vx:-22,vy:0,alive:true,squash:0,on:true}); break; } } }
-  const flagC=MAIN+2, foe=th.foe();
-  return {race:true, seed, theme:th, th:THEMES[th.vis], grid, h, W:LW, MAIN, rows, rowAt, enemies, flagX:flagC*TS, flagY:h[flagC]*TS, bumps:{}, epal:foe.pal, etype:foe.type};
-}
-function mkRacer(id,L){ const y=L.h[2]*TS-20, x=2*TS+1+id*8; return {id,x,y,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,jumping:false,stun:0,turbo:0,inv:0,jb:0,k:{left:false,right:false,jump:false},done:false,time:0,cam:0,safe:{x,y},skin:SKINS[id],msg:null,ok:0}; }
 function setSplit(on){ cv.classList.toggle('split',on); const hh=on?720:360; if(cv.height!==hh) cv.height=hh; }
 
-function startRace(mode,seed,themeId){
-  raceSeedLast=seed;
-  const L=buildRace(seed,themeId); LV=L;
-  RC={mode, L, P:Array.from({length:mode==='local'?2:1},(_,i)=>mkRacer(i,L)), t0:performance.now()+3300, started:false, finished:false, order:[], ghost:null, oppDone:null, oppOk:0, lastSend:0, lastBeep:0, lost:false};
-  scene='race'; Q=null; DLG=null; parts=[];
+function mkRacer(id,L){ const y=L.h[2]*TS-20, x=2*TS+1+id*8;
+  return {id,x,y,w:14,h:20,vx:0,vy:0,face:1,onGround:true,coyote:0,jumping:false,stun:0,turbo:0,inv:0,jb:0,
+    k:{left:false,right:false,jump:false},done:false,time:0,cam:0,safe:{x,y},skin:id===0?Object.assign({},SKINS[0],lookOf().skin):SKINS[1],hat:id===0?lookOf().hat:'antenne',trail:id===0?lookOf().trail:'aucune',msg:null,
+    used:new Set(),qi:0,q:null,ok:0,tot:0,streak:0,wrong:[],fx:[],ui:'',
+    boss:{hp:L.boss.max,max:L.boss.max,started:false,dying:0}}; }
+
+function startRace(mode,seed,idx){
+  raceWorld=idx;
+  const L=buildLevel(idx,{seed,qrnd:mulberry32(seed^0x5bd1e995)}); LV=L;
+  RC={mode,idx,L,P:Array.from({length:mode==='local'?2:1},(_,i)=>mkRacer(i,L)),t0:performance.now()+3300,started:false,finished:false,order:[],ghost:null,oppDone:null,oppOk:0,oppTot:0,lastSend:0,lastBeep:0,lost:false};
+  scene='race'; Q=null; DLG=null; initParts(L.z.part,10);
   if(!modal.hidden) closeModal();
-  setSplit(mode==='local'); $('#rtouch').hidden=mode!=='local';
+  setSplit(mode==='local'); $('#rtouch').hidden=false; $('#rpad1').hidden=mode!=='local';
+  RC.P.forEach(p=>raceTouch(p,true));
   overlays(); A.play('battle'); showRacePanel();
   try{ cv.focus({preventScroll:true}); }catch(e){}
 }
 function showRacePanel(){
-  const loc=RC.mode==='local', on=RC.mode==='online';
-  setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course : ${RC.L.theme.nom}</h2></div>
-    <p>Frappe la bonne lettre par en dessous : <b class="gold">bonne réponse = turbo</b>, mauvaise réponse = fausse manip (tu figes). ${on?'Ton adversaire est le fantôme transparent.':''} Le premier au drapeau gagne!</p>
-    <p class="hint">${loc?'Joueur 1 (en haut, blanc) : A et D pour bouger, W pour sauter (Q, D et Z sur un clavier français). Joueur 2 (en bas, orange) : les flèches. Sur tablette : les boutons sous l’écran.':'Flèches (ou A, D, W) pour bouger et sauter. Sur tablette : la croix et le bouton A.'}</p>
+  const loc=RC.mode==='local', on=RC.mode==='online', z=RC.L.z;
+  setPanel(`<div class="zhead"><span class="chip" style="--c:${chipColor(RC.idx)}"></span><h2>Course : ${wName(RC.idx)}</h2></div>
+    <p>Le premier à battre <b class="gold">${z.ennemi.nom}</b> gagne! Frappe les blocs du savoir par en dessous : bonne réponse = turbo. Contre le gardien, chaque bonne réponse lui enlève des PV; chaque erreur te fait perdre du temps. ${on?'Ton adversaire est le fantôme transparent.':''}</p>
+    <p class="hint">${loc?'Joueur 1 (en haut, blanc) : A et D pour bouger, W pour sauter (Q, D, Z sur un clavier français), touches 1 2 3 4 pour répondre A B C D. Joueur 2 (en bas, orange) : flèches, et touches 7 8 9 0 pour répondre. Sur tablette : les boutons sous l’écran.':'Flèches (ou A, D, W) pour bouger et sauter, touches 1 à 4 pour répondre. Sur tablette : les boutons sous l’écran.'}</p>
     <div class="row"><button class="btn small ghost" data-act="raceQuit">Quitter la course</button></div>`,null);
 }
 function raceSay(p,text,color,ms){ p.msg={text,color,until:performance.now()+(ms||1300)}; }
-function raceBump(p,hit,now){
-  const L=RC.L, k=L.grid[hit.r]&&L.grid[hit.r][hit.c];
-  if(k==='A'||k==='B'||k==='C'){
-    const rw=L.rowAt[hit.c+','+hit.r]; if(!rw) return;
-    L.bumps[hit.c+','+hit.r]=now;
-    if(rw.res[p.id]){ A.sfx('bump'); return; }
-    const pick='ABC'.indexOf(k), ok=pick===rw.q.good;
-    rw.res[p.id]={pick,ok,t:now};
-    if(ok){ p.ok++; p.turbo=3; A.sfx('block'); raceSay(p,'TURBO!','#7ff0a4'); }
-    else { p.stun=1.5; p.vx=0; A.sfx('hurt'); raceSay(p,'FAUSSE MANIP!','#ff8fa3'); }
-    return;
+function nextQp(p){ const pool=RC.L.pool, it=pool[p.qi%pool.length]; p.qi++; return prepQ(it); }
+function askRacer(p,kind,now,delay){ p.q={kind,cur:nextQp(p),t0:now+(delay||0),answered:false}; p.k.left=p.k.right=p.k.jump=false; p.vx=0; }
+
+/* ---------- Réponses ---------- */
+function raceAnswer(pi,k){
+  const p=RC&&RC.P[pi]; if(!p||!p.q||p.q.answered||p.done) return;
+  const q=p.q, now=performance.now(); if(now<q.t0+250||k>=q.cur.opts.length) return;
+  const ok=q.cur.opts[k]===q.cur.good; q.answered=true; q.pick=k; q.ok=ok; p.tot++;
+  if(q.kind==='block'){
+    if(ok){ p.ok++; p.turbo=3; A.sfx('confirm'); q.until=now+700; raceSay(p,'TURBO!','#7ff0a4'); }
+    else { p.wrong.push(q.cur); A.sfx('hurt'); q.until=now+2600; }
+  } else {
+    const b=p.boss, L=RC.L, hx=p.x+7, hy=p.y+6, bx=L.boss.x, by=L.boss.y, R0=RC;
+    if(ok){ p.ok++; p.streak++; const dmg=p.streak>=3?2:1; b.hp=Math.max(0,b.hp-dmg);
+      p.fx.push({k:'proj',x0:hx,y0:hy,x1:bx,y1:by,t0:now,dur:380}); A.sfx('shoot');
+      const kill=b.hp<=0; if(kill) p.time=now+380-RC.t0;
+      setTimeout(()=>{ if(RC!==R0) return; const t=performance.now(); p.fx.push({k:'eflash',t0:t,dur:420},{k:'burst',x:bx,y:by,t0:t,dur:320},{k:'pop',text:'-'+dmg,x:bx,y:by-38,c:'#ffffff',t0:t,dur:900,size:10}); if(dmg>1) p.fx.push({k:'pop',text:'CRITIQUE!',x:bx,y:by-50,c:'#f8c537',t0:t,dur:900,size:8}); A.sfx(dmg>1?'crit':'hit'); if(kill){ b.dying=t; A.sfx('die'); } },380);
+      q.until=now+(kill?1500:900);
+    } else { p.streak=0; p.wrong.push(q.cur); p.fx.push({k:'lunge',t0:now,dur:420}); setTimeout(()=>{ if(RC!==R0) return; p.fx.push({k:'hflash',t0:performance.now(),dur:500}); A.sfx('hurt'); },210); q.until=now+2600; }
   }
+}
+
+/* ---------- Physique ---------- */
+function raceBump(p,hit,now){
+  const L=RC.L, k=L.grid[hit.r]&&L.grid[hit.r][hit.c], key=hit.c+','+hit.r;
+  if(k==='S' && !p.used.has(key)){ p.used.add(key); L.bumps[key]=now; A.sfx('block'); askRacer(p,'block',now); return; }
   A.sfx('bump');
 }
+function raceCam(p,dt){ const L=RC.L, target=p.boss.started?L.arenaX:Math.max(0,Math.min(L.W*TS-W,p.x+7-110)); p.cam+=(target-p.cam)*Math.min(1,dt*(p.boss.started?4:12)); }
 function stepRacer(p,dt,now){
   const L=RC.L;
+  p.fx=p.fx.filter(f=>now<f.t0+f.dur+50);
+  if(p.q){
+    const q=p.q;
+    if(q.answered && now>=q.until){
+      if(q.kind==='block') p.q=null;
+      else if(p.boss.hp<=0){ p.q=null; p.done=true; RC.order.push(p.id); A.sfx('level'); raceFinished(p); }
+      else askRacer(p,'boss',now);
+    }
+    raceCam(p,dt); return;
+  }
+  if(p.done){ raceCam(p,dt); return; }
   p.stun=Math.max(0,p.stun-dt); p.turbo=Math.max(0,p.turbo-dt); p.inv=Math.max(0,p.inv-dt); p.jb=Math.max(0,p.jb-dt);
   p.coyote=p.onGround?0.09:Math.max(0,p.coyote-dt);
-  const can=RC.started && !p.done && p.stun<=0;
+  const can=RC.started && p.stun<=0 && !p.boss.started;
   let dir=0; if(can){ if(p.k.left) dir-=1; if(p.k.right) dir+=1; }
-  const max=p.turbo>0?170:100;
+  const max=p.turbo>0?165:100;
   if(dir){ p.vx+=dir*(p.onGround?700:520)*dt; p.face=dir; if(Math.abs(p.vx)>max) p.vx=Math.sign(p.vx)*Math.max(max,Math.abs(p.vx)-500*dt); }
   else { const f=(p.onGround?800:220)*dt; if(Math.abs(p.vx)<=f) p.vx=0; else p.vx-=Math.sign(p.vx)*f; }
-  if(p.done) p.vx*=0.9;
   if(can && p.jb>0 && p.coyote>0){ p.vy=p.turbo>0?-420:-405; p.onGround=false; p.coyote=0; p.jb=0; p.jumping=true; A.sfx('jump'); }
   if(p.jumping && !p.k.jump && p.vy<-130) p.vy=-130;
   p.vy=Math.min(430,p.vy+930*dt);
+  const prevBot=p.y+p.h, fallV=p.vy; // position avant le déplacement : sert à détecter un écrasement
   moveX(p,dt);
+  if(p.boss.started && p.x<L.arenaX){ p.x=L.arenaX; p.vx=0; }
   const hit=moveY(p,dt);
   if(p.onGround) p.jumping=false;
-  if(hit){ p.jumping=false; if(!p.done) raceBump(p,hit,now); }
+  if(hit){ p.jumping=false; if(can) raceBump(p,hit,now); if(p.q){ raceCam(p,dt); return; } }
   if(p.onGround && solid(Math.floor((p.x+1)/TS),Math.floor((p.y+p.h+1)/TS)) && solid(Math.floor((p.x+p.w-1)/TS),Math.floor((p.y+p.h+1)/TS))) p.safe={x:p.x,y:p.y};
   for(const e of L.enemies){
-    if(!e.alive||e.squash>0||p.done) continue;
+    if(!e.alive||e.squash>0) continue;
     if(overlap(p,e,2)){
-      if(p.vy>30 && p.y+p.h-e.y<10){ e.squash=0.45; const hold=p.k.jump||p.jb>0; p.vy=hold?-470:-320; p.jumping=hold; p.jb=0; A.sfx('stomp'); }
-      else if(p.inv<=0){ p.stun=1; p.inv=1.8; p.vx=(p.x+7<e.x+7?-1:1)*120; p.vy=-160; e.vx=(e.x<p.x?-1:1)*Math.max(22,Math.abs(e.vx)); A.sfx('hurt'); raceSay(p,'OUCH!','#ff8fa3'); }
+      if(fallV>0 && prevBot<=e.y+6){ e.squash=0.45; const hold=p.k.jump||p.jb>0; p.vy=hold?-470:-320; p.jumping=hold; p.jb=0; A.sfx('stomp'); }
+      else if(p.inv<=0){ p.stun=1; p.inv=1.8; p.vx=(p.x+7<e.x+7?-1:1)*120; p.vy=-160; e.vx=(e.x<p.x?-1:1)*Math.max(22,Math.abs(e.vx)); A.sfx('hurt'); raceSay(p,'OUCH! -1 s','#ff8fa3'); }
     }
   }
   if(p.y>ROWS*TS+24){ p.x=p.safe.x; p.y=p.safe.y; p.vx=0; p.vy=0; p.stun=1; p.inv=1.8; A.sfx('fall'); raceSay(p,'PLOUF! -1 s','#ff8fa3'); }
-  if(!p.done && RC.started && p.x+7>=L.flagX){ p.done=true; p.time=now-RC.t0; RC.order.push(p.id); A.sfx('level'); raceFinished(p); }
-  const target=Math.max(0,Math.min(L.W*TS-W,p.x+7-110));
-  p.cam+=(target-p.cam)*Math.min(1,dt*12);
+  if(!p.boss.started && RC.started && p.x>L.arenaX+28){ p.boss.started=true; p.vx=0; raceSay(p,L.z.ennemi.nom.toUpperCase()+'!','#ffcf5a',1200); A.sfx('hit'); askRacer(p,'boss',now,800); }
+  raceCam(p,dt);
 }
 function updateRace(dt,now){
   const R0=RC, L=R0.L;
@@ -1986,68 +2050,66 @@ function updateRace(dt,now){
   for(const e of L.enemies){
     if(!e.alive) continue;
     if(e.squash>0){ e.squash-=dt; if(e.squash<=0) e.alive=false; continue; }
+    if(!e.on){ if(R0.P.some(p=>e.x<p.cam+W+24)) e.on=true; else continue; }
     const v=e.vx; e.vy=Math.min(400,e.vy+900*dt);
     if(moveX(e,dt)) e.vx=-v;
     moveY(e,dt);
     if(e.onGround){ const fx=e.vx<0?e.x-1:e.x+e.w+1; if(!solid(Math.floor(fx/TS),Math.floor((e.y+e.h+2)/TS))) e.vx=-e.vx; }
     if(e.y>ROWS*TS+40) e.alive=false;
   }
-  for(const p of R0.P) stepRacer(p,dt,now);
+  for(const p of R0.P){ stepRacer(p,dt,now); raceTouch(p); }
   if(R0.mode==='online'){
     const p=R0.P[0];
-    if(now-R0.lastSend>80){ R0.lastSend=now; nSend({t:'p',x:Math.round(p.x),y:Math.round(p.y),f:p.face,g:p.onGround?1:0,vx:Math.round(p.vx),s:p.stun>0?1:0,tb:p.turbo>0?1:0}); }
+    if(now-R0.lastSend>80){ R0.lastSend=now; nSend({t:'p',x:Math.round(p.x),y:Math.round(p.y),f:p.face,g:p.onGround?1:0,vx:Math.round(p.vx),bh:p.boss.hp,bs:p.boss.started?1:0}); }
     const g=R0.ghost; if(g){ g.x+=(g.tx-g.x)*Math.min(1,dt*12); g.y+=(g.ty-g.y)*Math.min(1,dt*12); }
   }
 }
 function raceFinished(p){
-  if(RC.mode==='local'){ if(RC.P.every(q=>q.done)) setTimeout(raceResults,1400); }
-  else if(RC.mode==='solo') setTimeout(raceResults,1200);
-  else { nSend({t:'fin',time:p.time,ok:p.ok}); checkOnlineEnd(); }
+  if(RC.mode==='local'){ if(RC.P.every(q=>q.done)) setTimeout(raceResults,1200); }
+  else if(RC.mode==='solo') setTimeout(raceResults,1000);
+  else { nSend({t:'fin',time:p.time,ok:p.ok,tot:p.tot}); checkOnlineEnd(); }
 }
-function checkOnlineEnd(){ if(RC && RC.mode==='online' && RC.P[0].done && (RC.oppDone!=null || RC.lost) && !RC.finished) setTimeout(raceResults,1000); }
+function checkOnlineEnd(){ if(RC && RC.mode==='online' && RC.P[0].done && (RC.oppDone!=null || RC.lost) && !RC.finished) setTimeout(raceResults,800); }
+
+/* ---------- Boutons tactiles ---------- */
+function raceTouch(p,force){
+  const pad=$('#rpad'+p.id); if(!pad) return;
+  const st=(p.q && !p.q.answered && performance.now()>=p.q.t0)?'q':'m';
+  if(!force && p.ui===st) return; p.ui=st;
+  const lab=`<span>J${p.id+1}</span>`;
+  pad.innerHTML=st==='q'
+    ? lab+[0,1,2,3].map(i=>`<button class="rbtn ra" style="--c:${ANS_COL[i]}" data-ra="${p.id}:${i}" aria-label="Joueur ${p.id+1} réponse ${'ABCD'[i]}">${'ABCD'[i]}</button>`).join('')
+    : lab+`<button class="rbtn" data-rk="${p.id}:left" aria-label="Joueur ${p.id+1} gauche">◀</button><button class="rbtn" data-rk="${p.id}:right" aria-label="Joueur ${p.id+1} droite">▶</button><button class="rbtn" data-rk="${p.id}:jump" aria-label="Joueur ${p.id+1} saut">SAUT</button>`;
+}
 
 /* ---------- Rendu ---------- */
 function wrapLines(str,maxW,font){ ctx.font=font; const words=String(str).split(' '), out=[]; let line=''; for(const w of words){ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){ out.push(line); line=w; } else line=t; } if(line) out.push(line); return out; }
-function drawAnsTile(k,sx,sy,rw,pid){
-  const i='ABC'.indexOf(k), res=rw&&rw.res[pid];
-  if(res){
-    if(res.pick===i){ const c=res.ok?'#1b8a4a':'#b02a3e'; R(sx,sy,16,16,'#14112a'); R(sx+1,sy+1,14,14,c);
-      if(res.ok){ line(sx+4,sy+8,sx+7,sy+11,'#fff'); line(sx+7,sy+11,sx+12,sy+4,'#fff'); } else { line(sx+4,sy+4,sx+11,sy+11,'#fff'); line(sx+11,sy+4,sx+4,sy+11,'#fff'); } }
-    else drawTile('U',sx,sy,null,0,0,0);
-    return;
-  }
-  R(sx,sy,16,16,'#14112a'); R(sx+1,sy+1,14,14,ANS_COL[i]); R(sx+1,sy+1,14,2,'rgba(255,255,255,.55)'); R(sx+1,sy+13,14,2,'rgba(0,0,0,.25)');
-  ctx.font='8px '+FONT_HUD; ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='#14112a'; ctx.fillText(k,sx+8.5,sy+5);
-}
-function drawFinish(x,y,t){
-  R(x,y-56,2,56,'#f2f0ff'); disc(x+1,y-57,2,'#f8c537');
-  const w=Math.round(Math.sin(t*5));
-  for(let r=0;r<3;r++) for(let c=0;c<5;c++) R(x+2+c*4,y-54+r*4+(c>2?w:0),4,4,(r+c)%2?'#14112a':'#ffffff');
-  txt('ARRIVÉE',x+12,y-66,'#ffffff',6,'center',FONT_HUD);
-}
-function currentRow(p,now){
-  const rows=RC.L.rows;
-  const fb=rows.find(rw=>rw.res[p.id] && now-rw.res[p.id].t<3200); if(fb) return {rw:fb,fb:true};
-  const rw=rows.find(rw=>!rw.res[p.id] && p.x+7<rw.x1+TS && p.x+7>rw.x0-15*TS); return rw?{rw,fb:false}:null;
-}
 function raceQBox(p,now){
-  const cr=currentRow(p,now); if(!cr) return;
-  const {rw,fb}=cr, fQ='600 8px "Pixelify Sans", monospace', fO='7px "Pixelify Sans", monospace';
-  let lines=[];
-  if(fb){
-    const res=rw.res[p.id];
-    if(res.ok) lines.push({t:'BONNE RÉPONSE! TURBO!',f:fQ,c:'#7ff0a4'});
-    else { lines.push({t:'FAUSSE MANIP! La bonne réponse :',f:fQ,c:'#ff8fa3'}); wrapLines('ABC'[rw.q.good]+' : '+rw.q.txt,296,fO).forEach(s=>lines.push({t:s,f:fO,c:'#ffffff'})); }
-  } else {
-    wrapLines(rw.q.q,300,fQ).forEach(s=>lines.push({t:s,f:fQ,c:'#ffffff'}));
-    rw.q.opts.forEach((o,i)=>wrapLines(o,284,fO).forEach((s,j)=>lines.push({t:s,f:fO,c:'#dfe4ff',chip:j===0?i:-1,ind:14})));
-  }
-  const lh=9, hh=lines.length*lh+6;
-  ctx.fillStyle='rgba(8,12,40,.86)'; ctx.fillRect(4,15,312,hh); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillRect(4,15,312,1);
+  const q=p.q; if(!q||now<q.t0) return;
+  const fH='600 7px "Pixelify Sans", monospace', fQ='600 8px "Pixelify Sans", monospace', fO='7px "Pixelify Sans", monospace';
+  const name=RC.L.z.ennemi.nom, lines=[];
+  lines.push({t:q.kind==='boss'?`GARDIEN : ${name} · ${p.boss.hp}/${p.boss.max} PV`:'BLOC DU SAVOIR',f:fH,c:'#f8c537'});
+  wrapLines(q.cur.q,300,fQ).forEach(s=>lines.push({t:s,f:fQ,c:'#ffffff'}));
+  q.cur.opts.forEach((o,i)=>wrapLines(o,282,fO).forEach((s,j)=>lines.push({t:s,f:fO,c:'#dfe4ff',chip:j===0?i:-1,opt:i,ind:16})));
+  if(q.answered) lines.push({t:q.ok?(q.kind==='boss'?'Touché!':'Bonne réponse! Turbo!'):'Fausse manip! La bonne réponse est en vert.',f:fQ,c:q.ok?'#7ff0a4':'#ff8fa3'});
+  const lh=9, hh=lines.length*lh+6, y0=15;
+  ctx.fillStyle='rgba(8,12,40,.9)'; ctx.fillRect(4,y0,312,hh); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fillRect(4,y0,312,1);
   ctx.textAlign='left'; ctx.textBaseline='top';
-  lines.forEach((l,i)=>{ const y=18+i*lh;
-    if(l.chip>=0){ R(9,y,9,8,ANS_COL[l.chip]); ctx.font='6px '+FONT_HUD; ctx.fillStyle='#14112a'; ctx.fillText('ABC'[l.chip],10.5,y+1); }
+  lines.forEach((l,i)=>{ const y=y0+3+i*lh;
+    if(q.answered && l.opt!=null){ const good=q.cur.opts[l.opt]===q.cur.good; if(good) R(6,y-1,308,lh,'rgba(27,138,74,.7)'); else if(l.opt===q.pick) R(6,y-1,308,lh,'rgba(176,42,62,.7)'); }
+    if(l.chip>=0){ R(8,y,10,8,ANS_COL[l.chip]); ctx.font='6px '+FONT_HUD; ctx.fillStyle='#14112a'; ctx.fillText('ABCD'[l.chip],10.5,y+1); }
     ctx.font=l.f; ctx.fillStyle=l.c; ctx.fillText(l.t,8+(l.ind||0),y); });
+}
+function drawRaceBoss(p,now,t,cam){
+  const L=RC.L, b=p.boss, z=L.z;
+  if(b.dying && now>b.dying+950) return;
+  const has=k=>p.fx.find(f=>f.k===k && now>=f.t0 && now<f.t0+f.dur);
+  let ex=L.boss.x-cam, ey=L.boss.y-VY+Math.round(Math.sin(t*2)*2);
+  const lu=has('lunge'); if(lu){ const pr=(now-lu.t0)/lu.dur, dist=Math.max(0,ex-(p.x+7-cam)-46); ex-=Math.round(Math.sin(pr*Math.PI)*dist); }
+  let pal=z.ennemi.pal; const ef=has('eflash'); if(ef && Math.floor((now-ef.t0)/70)%2===0) pal=WHITE;
+  if(b.dying && now>b.dying){ const pr=(now-b.dying)/950; ey+=Math.round(pr*18); if(Math.floor(pr*24)%2) return; }
+  if(ex<-60||ex>W+60) return;
+  ENEMY[z.ennemi.type](ex,ey,t,pal);
 }
 function drawRaceView(p,oy,t,now){
   const L=RC.L;
@@ -2055,38 +2117,41 @@ function drawRaceView(p,oy,t,now){
   const cam=Math.round(p.cam);
   drawSky(L.th,cam,t);
   drawTiles(L,cam,now,t,p);
-  const fx=L.flagX-cam; if(fx>-30&&fx<W+30) drawFinish(fx,L.flagY-VY,t);
-  for(const e of L.enemies){ if(!e.alive) continue; const sx=e.x-cam; if(sx>-20&&sx<W+20) drawMinion(e,sx,e.y-VY,t,L.epal,L.etype); }
+  for(const e of L.enemies){ if(!e.alive) continue; const sx=e.x-cam; if(sx>-20&&sx<W+20) drawMinion(e,sx,e.y-VY,t,L.z.ennemi.pal,L.z.ennemi.type); }
+  drawRaceBoss(p,now,t,cam);
   if(RC.mode==='local'){ const o=RC.P[1-p.id]; ctx.globalAlpha=0.55; drawGlobi(o.x-cam,o.y-VY,t,o,null); ctx.globalAlpha=1; txt(o.id?'J2':'J1',o.x-cam+7,o.y-VY-22,o.skin.tag,6,'center',FONT_HUD); }
   if(RC.mode==='online' && RC.ghost){ const g=RC.ghost; ctx.globalAlpha=0.45; drawGlobi(g.x-cam,g.y-VY,t,{face:g.face||1,onGround:!!g.onGround,vx:g.vx||0,skin:SKINS[1]},null); ctx.globalAlpha=1; txt('ADVERSAIRE',g.x-cam+7,g.y-VY-22,SKINS[1].tag,6,'center',FONT_HUD); }
   if(p.turbo>0){ for(let i=1;i<4;i++) R(p.x-cam-i*5*(p.face||1)+(p.face<0?14:0),p.y-VY+6+i*3,6,1,'rgba(127,240,164,'+(0.7-i*0.18)+')'); }
-  const blink=p.inv>0 && Math.floor(now/90)%2===0;
-  if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,null);
+  trailFx(p,cam,now);
+  const hf=p.fx.find(f=>f.k==='hflash'&&now>=f.t0&&now<f.t0+f.dur), blink=p.inv>0 && Math.floor(now/90)%2===0;
+  if(!blink) drawGlobi(p.x-cam,p.y-VY,t,p,(hf&&Math.floor((now-hf.t0)/70)%2===0)?'#ff5a6e':null);
   if(p.stun>0) for(let k=0;k<3;k++){ const a=t*6+k*2.09; star(p.x-cam+5+Math.cos(a)*8,p.y-VY-14+Math.sin(a)*3,'#ffe66b'); }
+  drawFx({fx:p.fx},now,cam);
   // barre du haut
-  R(0,0,W,13,'rgba(10,20,60,.5)');
-  const lab=RC.mode==='local'?(p.id?'J2':'J1'):'TOI';
-  txt(lab,4,3,p.skin.tag,8,'left',FONT_HUD);
+  R(0,0,W,13,'rgba(10,20,60,.55)');
+  txt(RC.mode==='local'?(p.id?'J2':'J1'):'TOI',4,3,p.skin.tag,8,'left',FONT_HUD);
   const el=RC.started?(p.done?p.time:now-RC.t0):0;
   txt(fmtT(Math.max(0,el)),160,3,'#ffffff',8,'center',FONT_HUD);
-  txt('BONNES '+p.ok+'/'+L.rows.length,316,3,'#7ff0a4',8,'right',FONT_HUD);
-  raceQBox(p,now);
+  if(p.boss.started){ const w=56, f=p.boss.hp/p.boss.max; R(316-w-2,4,w+2,6,'#14112a'); R(316-w-1,5,w*f,4,f>0.5?'#3fbf6f':f>0.25?'#f2c230':'#e8455a'); txt('PV',316-w-6,3,'#ffffff',6,'right',FONT_HUD); }
+  else txt('BONNES '+p.ok+'/'+p.tot,316,3,'#7ff0a4',8,'right',FONT_HUD);
   // progression
-  const px0=24, pw=272, py=171;
+  const goal=L.boss.x, px0=24, pw=272, py=171;
   R(px0,py,pw,3,'rgba(0,0,0,.45)'); R(px0+pw-2,py-3,2,9,'#ffffff');
-  const mark=(x,c)=>{ const f=Math.max(0,Math.min(1,(x+7)/L.flagX)); R(px0+f*pw-2,py-2,5,7,'#14112a'); R(px0+f*pw-1,py-1,3,5,c); };
+  const mark=(x,c)=>{ const f=Math.max(0,Math.min(1,(x+7)/goal)); R(px0+f*pw-2,py-2,5,7,'#14112a'); R(px0+f*pw-1,py-1,3,5,c); };
   if(RC.mode==='local') mark(RC.P[1-p.id].x,RC.P[1-p.id].skin.tag);
   if(RC.mode==='online' && RC.ghost) mark(RC.ghost.x,SKINS[1].tag);
   mark(p.x,p.skin.tag);
-  if(p.msg && now<p.msg.until) txt(p.msg.text,160,128,p.msg.color,10,'center',FONT_HUD);
+  raceQBox(p,now);
+  if(p.msg && now<p.msg.until && !(p.q&&now>=p.q.t0)) txt(p.msg.text,160,128,p.msg.color,10,'center',FONT_HUD);
   if(!RC.started){ const s=Math.ceil((RC.t0-now)/1000); txt(s>0?String(s):'GO!',160,74,'#ffffff',24,'center',FONT_HUD); }
   else if(now-RC.t0<700) txt('GO!',160,74,'#7ff0a4',24,'center',FONT_HUD);
-  if(p.done){ const place=RC.order.indexOf(p.id)+1; const msg=RC.mode==='solo'?'ARRIVÉE!':RC.mode==='local'?(place===1?'1er!':'2e'):(RC.oppDone!=null&&RC.oppDone<p.time?'2e':'1er!');
-    R(60,70,200,34,'rgba(8,12,40,.8)'); txt(msg+'  '+fmtT(p.time),160,76,'#f8c537',10,'center',FONT_HUD);
+  if(p.done){
+    const place=RC.order.indexOf(p.id)+1, msg=RC.mode==='solo'?'GARDIEN VAINCU!':RC.mode==='local'?(place===1?'1er!':'2e'):(RC.oppDone!=null&&RC.oppDone<p.time?'2e':'1er!');
+    R(50,70,220,34,'rgba(8,12,40,.85)'); txt(msg+'  '+fmtT(p.time),160,76,'#f8c537',10,'center',FONT_HUD);
     if(RC.mode==='online' && RC.oppDone==null && !RC.lost) txt('En attente de l’adversaire…',160,92,'#ffffff',6,'center',FONT_HUD);
-    if(RC.mode==='local' && !RC.P.every(q=>q.done)) txt('On attend l’autre joueur…',160,92,'#ffffff',6,'center',FONT_HUD); }
-  else if(RC.mode==='online' && RC.oppDone!=null) txt('Ton adversaire est arrivé!',160,110,'#ffb347',7,'center',FONT_HUD);
-  if(RC.lost && !p.done) txt('Connexion perdue',160,110,'#ff8fa3',7,'center',FONT_HUD);
+    if(RC.mode==='local' && !RC.P.every(q=>q.done)) txt('On attend l’autre joueur…',160,92,'#ffffff',6,'center',FONT_HUD);
+  } else if(RC.mode==='online' && RC.oppDone!=null && !(p.q&&now>=p.q.t0)) txt('Ton adversaire a vaincu le gardien!',160,110,'#ffb347',7,'center',FONT_HUD);
+  if(RC.lost && !p.done) txt('Connexion perdue',160,120,'#ff8fa3',7,'center',FONT_HUD);
   ctx.restore();
 }
 function drawRace(t,now){
@@ -2097,43 +2162,51 @@ function drawRace(t,now){
 /* ---------- Résultats ---------- */
 function raceResults(){
   if(!RC||RC.finished) return; RC.finished=true; A.play('win');
-  const th=RC.L.theme; let html=`<h2>Résultats : ${th.nom}</h2>`;
+  const z=RC.L.z, key='w'+RC.idx; let html=`<h2>Résultats : ${wName(RC.idx)}</h2>`;
+  const review=p=>{ const seen=new Set(), list=p.wrong.filter(q=>!seen.has(q.q)&&seen.add(q.q)); return list.length?`<ul class="fiche" style="--c:${p.skin.tag}">${list.map(q=>`<li>${q.q}<br><b>${q.good}</b> · <span class="expl">${q.e}</span></li>`).join('')}</ul>`:'<p class="hint">Aucune erreur. Bravo!</p>'; };
   if(RC.mode==='local'){
     const ps=RC.P.slice().sort((a,b)=>(a.done?a.time:1e12)-(b.done?b.time:1e12));
-    html+=`<div class="stats">${ps.map((p,i)=>`<div class="stat">${i===0?'1re place':'2e place'} · ${p.skin.nom}<b>${p.done?fmtT(p.time):'—'}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div>`).join('')}</div>`;
+    html+=`<div class="stats">${ps.map((p,i)=>`<div class="stat">${i===0?'1re place':'2e place'} · ${p.skin.nom}<b>${p.done?fmtT(p.time):'—'}</b>${p.ok}/${p.tot} bonnes réponses</div>`).join('')}</div>`;
+    html+=RC.P.map(p=>`<h2>À revoir : ${p.skin.nom}</h2>${review(p)}`).join('');
   } else if(RC.mode==='solo'){
-    const p=RC.P[0]; G.raceBest=G.raceBest||{}; const old=G.raceBest[th.id], rec=!old||p.time<old; if(rec){ G.raceBest[th.id]=p.time; save(); }
-    html+=`<div class="stats"><div class="stat">Ton temps<b>${fmtT(p.time)}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div><div class="stat">Record<b>${fmtT(G.raceBest[th.id])}</b>${rec?'Nouveau record!':'Essaie de le battre!'}</div></div>`;
+    const p=RC.P[0]; G.raceBest=G.raceBest||{}; const old=G.raceBest[key], rec=!old||p.time<old; if(rec){ G.raceBest[key]=p.time; save(); }
+    html+=`<div class="stats"><div class="stat">Ton temps<b>${fmtT(p.time)}</b>${p.ok}/${p.tot} bonnes réponses</div><div class="stat">Record<b>${fmtT(G.raceBest[key])}</b>${rec?'Nouveau record!':'Essaie de le battre!'}</div></div><h2>À revoir</h2>${review(p)}`;
   } else {
     const p=RC.P[0], opp=RC.oppDone, win=opp==null||p.time<=opp;
-    html+=`<p class="say">${RC.lost&&opp==null?'La connexion a été perdue.':win?'Tu as gagné la course!':'Ton adversaire a gagné.'}</p><div class="stats"><div class="stat">Toi<b>${fmtT(p.time)}</b>${p.ok}/${RC.L.rows.length} bonnes réponses</div><div class="stat">Adversaire<b>${opp!=null?fmtT(opp):'—'}</b>${opp!=null?RC.oppOk+'/'+RC.L.rows.length+' bonnes réponses':''}</div></div>`;
+    html+=`<p class="say">${RC.lost&&opp==null?'La connexion a été perdue.':win?'Tu as gagné la course!':'Ton adversaire a gagné.'}</p><div class="stats"><div class="stat">Toi<b>${fmtT(p.time)}</b>${p.ok}/${p.tot} bonnes réponses</div><div class="stat">Adversaire<b>${opp!=null?fmtT(opp):'—'}</b>${opp!=null?RC.oppOk+'/'+RC.oppTot+' bonnes réponses':''}</div></div><h2>À revoir</h2>${review(p)}`;
   }
-  html+=`<h2>Corrigé de la course</h2><ul class="fiche" style="--c:#ff5d6c">${RC.L.rows.map(rw=>`<li>${rw.q.q}<br><b>${rw.q.txt}</b> · <span class="expl">${rw.q.e}</span></li>`).join('')}</ul>`;
+  const earn=RC.P.reduce((a,p)=>a+p.ok*2+(p.done?5:0),0); G.coins=(G.coins||0)+earn; save();
+  html+=`<p class="hint">+${earn} ATP gagnés pour la boutique (2 par bonne réponse, 5 pour avoir vaincu le gardien).</p>`;
   const again=RC.mode==='online'?(NET.role==='host'&&!RC.lost?'<button class="btn" data-act="raceAgain">Nouvelle course ▶</button>':'<span class="hint">'+(RC.lost?'':'La personne qui a créé la course peut en lancer une nouvelle.')+'</span>'):'<button class="btn" data-act="raceAgain">Rejouer ▶</button>';
-  html+=`<div class="row">${again}<button class="btn ghost" data-act="raceMenu">Changer de mode</button><button class="btn ghost" data-act="home">Accueil</button></div>`;
+  html+=`<div class="row">${again}<button class="btn ghost" data-act="raceMenu">Changer de monde</button><button class="btn ghost" data-act="home">Accueil</button></div>`;
   setPanel(html);
 }
 
 /* ---------- Menus ---------- */
+const RACE_ORDER=[0,1,2,3,4,5,6,7,13,8,9,10,11,12];
 function raceMenu(){
   if(RC && RC.mode==='online') netClose();
   RC=null; LV=null; scene='racemenu'; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('title');
-  const best=G.raceBest&&G.raceBest[raceTheme];
+  const opt=i=>`<option value="${i}" ${raceWorld===i?'selected':''}>${wName(i)}${G.raceBest&&G.raceBest['w'+i]?' · record '+fmtT(G.raceBest['w'+i]):''}</option>`;
   setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course multijoueur</h2></div>
-    <p>Tout le monde court sur le même parcours avec 5 rangées de blocs A, B, C. Frappe la bonne lettre par en dessous : bonne réponse = turbo, mauvaise = fausse manip. Le premier au drapeau gagne!</p>
-    <div class="qhead">1. Choisis le thème</div>
-    <div class="row">${RTHEMES.map(t=>`<button class="btn small tchip" data-act="raceTheme" data-arg="${t.id}" aria-pressed="${t.id===raceTheme}">${t.nom}</button>`).join('')}</div>
+    <p>Même monde, même gardien : le premier à battre le gardien gagne! Les blocs du savoir donnent un turbo si tu réponds juste. Contre le gardien, chaque bonne réponse lui enlève des PV, et chaque erreur te fait perdre du temps.</p>
+    <div class="qhead">1. Choisis le monde</div>
+    <select id="raceSel" class="sel" aria-label="Monde de la course">
+      <optgroup label="Le corps humain">${RACE_ORDER.slice(0,10).map(opt).join('')}</optgroup>
+      <optgroup label="Labo et atelier">${RACE_ORDER.slice(10).map(opt).join('')}</optgroup>
+    </select>
     <div class="qhead">2. Choisis le mode</div>
     <div class="modes">
       <button class="btn mode" data-act="raceLocal"><b>2 joueurs</b><span>Sur le même appareil, écran partagé</span></button>
       <button class="btn mode" data-act="raceOnline"><b>En ligne</b><span>Chacun sur son appareil, avec un code</span></button>
-      <button class="btn mode" data-act="raceSolo"><b>Contre la montre</b><span>Seul, pour battre ton record${best?' ('+fmtT(best)+')':''}</span></button>
+      <button class="btn mode" data-act="raceSolo"><b>Contre la montre</b><span>Seul, pour battre ton record</span></button>
     </div>
-    <div class="row"><button class="btn small ghost" data-act="home">◀ Accueil</button></div>`);
+    <div class="row"><button class="btn small ghost" data-act="home">◀ Accueil</button></div>`,'#raceSel');
 }
+function raceSelWorld(){ const el=$('#raceSel'); if(el){ raceWorld=+el.value; try{ localStorage.setItem(SAVE_KEY+'-rworld',raceWorld); }catch(e){} } return raceWorld; }
 function netMenu(){
   setPanel(`<div class="zhead"><span class="chip" style="--c:#ff5d6c"></span><h2>Course en ligne</h2></div>
-    <p>Les deux appareils doivent être connectés à Internet. Le thème choisi par la personne qui crée la course s’applique aux deux joueurs (ici : <b class="gold">${themeOf(raceTheme).nom}</b>).</p>
+    <p>Les deux appareils doivent être connectés à Internet. Le monde choisi par la personne qui crée la course s’applique aux deux joueurs (ici : <b class="gold">${wName(raceWorld)}</b>).</p>
     <div class="row" id="netChoice"><button class="btn" data-act="netHost">Créer une course</button><span class="hint">ou</span><input id="netCodeIn" class="codein" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Code de la course"><button class="btn" data-act="netJoin">Rejoindre</button></div>
     <div id="netHostBox" hidden><p>Code à donner à ton adversaire : <b class="code" id="netCode">····</b></p></div>
     <p class="hint" id="netStatus" aria-live="polite"></p>
@@ -2170,7 +2243,7 @@ function netHost(){
   };
   tryHost();
 }
-function hostGo(){ const seed=(Math.random()*1e9)|0; nSend({t:'go',seed,theme:raceTheme}); startRace('online',seed,raceTheme); }
+function hostGo(){ const seed=(Math.random()*1e9)|0; nSend({t:'go',seed,w:raceWorld}); startRace('online',seed,raceWorld); }
 function netJoin(){
   if(!PeerCtor){ netStatus(NO_NET); return; }
   const code=($('#netCodeIn').value||'').trim().toUpperCase(); if(code.length!==4){ netStatus('Le code contient 4 lettres.'); return; }
@@ -2183,11 +2256,131 @@ function netJoin(){
 }
 function netData(m){
   if(!m||!m.t) return;
-  if(m.t==='go'){ raceTheme=m.theme; startRace('online',m.seed,m.theme); }
+  if(m.t==='go'){ startRace('online',m.seed,ALL[m.w]?m.w:0); }
   else if(m.t==='p' && RC && RC.mode==='online'){ const g=RC.ghost||(RC.ghost={x:m.x,y:m.y}); g.tx=m.x; g.ty=m.y; g.face=m.f; g.onGround=m.g; g.vx=m.vx; }
-  else if(m.t==='fin' && RC && RC.mode==='online'){ RC.oppDone=m.time; RC.oppOk=m.ok||0; checkOnlineEnd(); }
+  else if(m.t==='fin' && RC && RC.mode==='online'){ RC.oppDone=m.time; RC.oppOk=m.ok||0; RC.oppTot=m.tot||0; checkOnlineEnd(); }
 }
 function netLost(){ NET.conn=null; if(RC && RC.mode==='online' && !RC.finished){ RC.lost=true; checkOnlineEnd(); } netStatus('Connexion perdue.'); }
+
+
+/* =========================================================
+   BOUTIQUE DE GLOBI — l’ATP sert de monnaie
+   ========================================================= */
+const SHOP={
+  color:{nom:'Couleurs', items:[
+    {id:'classique',nom:'Blanc classique',prix:0, sk:{BODY:'#e4eafc',OL:'#24305e',NU:'#7d4fc0',FOOT:'#3a2f6e'}},
+    {id:'rose',nom:'Rose bonbon',prix:30, sk:{BODY:'#ffd3e6',OL:'#6a1f45',NU:'#d0457f',FOOT:'#7a2550'}},
+    {id:'menthe',nom:'Menthe',prix:30, sk:{BODY:'#d4f7e6',OL:'#14533c',NU:'#2f9a78',FOOT:'#1d5a44'}},
+    {id:'ciel',nom:'Bleu ciel',prix:30, sk:{BODY:'#d4ecff',OL:'#173d6a',NU:'#3a7fd0',FOOT:'#1f4170'}},
+    {id:'soleil',nom:'Soleil',prix:50, sk:{BODY:'#fff1b8',OL:'#6a4a00',NU:'#e0a020',FOOT:'#7a5410'}},
+    {id:'nuit',nom:'Nuit étoilée',prix:60, sk:{BODY:'#4a4f7a',OL:'#0f1230',NU:'#9a7bff',FOOT:'#1a1d40',EYE:'#ffffff'}},
+    {id:'arcenciel',nom:'Arc-en-ciel',prix:150, sk:{BODY:'#ffffff',OL:'#24305e',NU:'#7d4fc0',FOOT:'#3a2f6e',rainbow:true}}
+  ]},
+  hat:{nom:'Chapeaux', items:[
+    {id:'antenne',nom:'Antenne Y dorée',prix:0},
+    {id:'casquette',nom:'Casquette',prix:40},
+    {id:'lunettes',nom:'Lunettes de labo',prix:50},
+    {id:'casque',nom:'Casque de chantier',prix:60},
+    {id:'bandeau',nom:'Bandeau de héros',prix:60},
+    {id:'magicien',nom:'Chapeau de magicien',prix:90},
+    {id:'couronne',nom:'Couronne',prix:150}
+  ]},
+  trail:{nom:'Traînées', items:[
+    {id:'aucune',nom:'Aucune',prix:0},
+    {id:'etincelles',nom:'Étincelles',prix:40},
+    {id:'bulles',nom:'Bulles',prix:40},
+    {id:'notes',nom:'Notes de musique',prix:60},
+    {id:'coeurs',nom:'Petits cœurs',prix:60},
+    {id:'arcenciel',nom:'Arc-en-ciel',prix:120}
+  ]}
+};
+const shopItem=(cat,id)=>SHOP[cat].items.find(x=>x.id===id)||SHOP[cat].items[0];
+const ownKey=(cat,id)=>cat+':'+id;
+const owns=(cat,id)=>shopItem(cat,id).prix===0 || (G.owned||[]).includes(ownKey(cat,id));
+function lookFrom(lk){ lk=lk||G.look||{}; return {skin:Object.assign({},shopItem('color',lk.color).sk), hat:shopItem('hat',lk.hat).id, trail:shopItem('trail',lk.trail).id}; }
+const lookOf=()=>lookFrom(G.look);
+
+/* ---------- Chapeaux ---------- */
+function drawHat(h,cx,cy,face,t,flash){
+  const c=x=>flash||x;
+  switch(h){
+    case 'casquette': R(cx-6,cy-12,12,4,c('#c8304a')); R(cx-5,cy-13,10,1,c('#c8304a')); R(face>0?cx+4:cx-10,cy-9,6,2,c('#a02038')); R(cx-1,cy-14,2,1,c('#ffd0d6')); break;
+    case 'lunettes': { const ex=cx+face*2; R(cx-9,cy-4,18,1,c('#3a3f48')); for(const ox of [ex-6,ex+1]){ R(ox,cy-7,6,6,c('#3a3f48')); R(ox+1,cy-6,4,4,flash||'rgba(127,214,255,.55)'); R(ox+1,cy-6,1,1,c('#ffffff')); }
+      line(cx,cy-9,cx,cy-11,c('#f8c537')); line(cx,cy-11,cx-2,cy-13,c('#f8c537')); line(cx,cy-11,cx+2,cy-13,c('#f8c537')); break; }
+    case 'casque': for(let dy=-6;dy<=0;dy++){ const hw=Math.floor(Math.sqrt(36-dy*dy)); R(cx-hw,cy-11+dy,2*hw+1,1,c('#f2c230')); } R(cx-9,cy-10,18,2,c('#c9961a')); R(cx-1,cy-17,2,7,c('#ffe066')); break;
+    case 'bandeau': R(cx-8,cy-8,16,3,c('#e8455a')); R(cx-8,cy-8,16,1,c('#ff8fa3')); { const bx=cx-face*9; R(bx-1,cy-8,3,1,c('#e8455a')); R(bx-face*2-1,cy-7+Math.round(Math.sin(t*10)),3,1,c('#e8455a')); R(bx-face*4-1,cy-6+Math.round(Math.sin(t*10+1)),3,1,c('#e8455a')); } break;
+    case 'magicien': for(let k=0;k<11;k++){ const w=11-k; R(cx-Math.floor(w/2),cy-10-k,w,1,c('#5c34a3')); } R(cx-8,cy-10,16,2,c('#3a1f70')); R(cx-1,cy-16,1,1,c('#ffe66b')); R(cx+1,cy-14,1,1,c('#ffe66b')); R(cx-2,cy-13,1,1,c('#ffe66b')); break;
+    case 'couronne': R(cx-6,cy-11,13,3,c('#f8c537')); R(cx-6,cy-14,2,3,c('#f8c537')); R(cx-1,cy-15,3,4,c('#f8c537')); R(cx+5,cy-14,2,3,c('#f8c537')); R(cx-6,cy-11,13,1,c('#fff1a8')); R(cx,cy-10,1,1,c('#e8455a')); R(cx-4,cy-10,1,1,c('#4fc3f7')); R(cx+4,cy-10,1,1,c('#3fbf6f')); break;
+    default: line(cx,cy-9,cx,cy-11,c('#f8c537')); line(cx,cy-11,cx-2,cy-13,c('#f8c537')); line(cx,cy-11,cx+2,cy-13,c('#f8c537'));
+  }
+}
+
+/* ---------- Traînées ---------- */
+function trailDraw(k,x,y,a,t){
+  switch(k){
+    case 'etincelles': { const c=a<0.5?'#fff6c0':'#ffe066'; R(x,y-a*6,1,1,c); R(x-1,y-a*6,3,1,c); R(x,y-a*6-1,1,3,c); break; }
+    case 'bulles': ring(x,y-a*14,1+Math.round(a*2),'#bfe9ff'); break;
+    case 'notes': R(x,y-a*10,2,2,'#9fd8ff'); R(x+1,y-a*10-5,1,5,'#9fd8ff'); R(x+2,y-a*10-5,2,1,'#9fd8ff'); break;
+    case 'coeurs': pix(['X.X','XXX','.X.'],x-1,y-a*10,{X:'#ff6b8a'}); break;
+    case 'arcenciel': R(x-1,y-1,3,2,`hsl(${(t*200+a*300)%360},90%,65%)`); break;
+  }
+}
+function trailFx(p,cam,now,vy){
+  if(!p.trail||p.trail==='aucune') return;
+  p.tr=p.tr||[];
+  const moving=Math.abs(p.vx)>20||!p.onGround;
+  if(moving && (!p.trT||now-p.trT>60)){ p.trT=now; p.tr.push({x:p.x+7-(p.face||1)*6+(Math.random()*4-2),y:p.y+15+(Math.random()*4-2),t0:now}); }
+  p.tr=p.tr.filter(q=>now-q.t0<650);
+  for(const q of p.tr) trailDraw(p.trail,q.x-cam,q.y-(vy||VY),(now-q.t0)/650,now/1000);
+}
+
+/* ---------- Boutique ---------- */
+let SH={cat:'color', pv:null, sel:null, tr:[], trT:0};
+function shopOpen(){
+  if(RC && RC.mode==='online') netClose();
+  RC=null; LV=null; scene='shop'; setSplit(false); $('#rtouch').hidden=true; overlays(); A.play('map');
+  SH.pv=Object.assign({},G.look); SH.sel=SH.pv[SH.cat]; shopPanel();
+}
+function shopPanel(focusSel){
+  const cat=SH.cat, items=SHOP[cat].items, coins=G.coins||0, it=shopItem(cat,SH.sel), own=owns(cat,it.id), eq=G.look[cat]===it.id;
+  const state=x=>G.look[cat]===x.id?'Équipé':owns(cat,x.id)?'Possédé':x.prix+' ATP';
+  let act;
+  if(eq) act=`<span class="hint">C’est ce que Globi porte en ce moment.</span>`;
+  else if(own) act=`<button class="btn" data-act="shopEquip">Équiper ▶</button>`;
+  else if(coins>=it.prix) act=`<button class="btn" data-act="shopBuy">Acheter pour ${it.prix} ATP ▶</button>`;
+  else act=`<span class="hint">Il te manque ${it.prix-coins} ATP. Ramasse de l’ATP dans les niveaux et gagne des courses!</span>`;
+  setPanel(`<div class="zhead"><span class="chip" style="--c:#ffd23f"></span><h2>Boutique de Globi</h2></div>
+    <p>Dépense l’ATP ramassé dans les niveaux et les courses pour personnaliser ton globule. Ton porte-monnaie : <b class="gold">${coins} ATP</b></p>
+    <div class="row" role="group" aria-label="Catégories">${Object.keys(SHOP).map(k=>`<button class="btn small tchip" data-act="shopTab" data-arg="${k}" aria-pressed="${k===cat}">${SHOP[k].nom}</button>`).join('')}</div>
+    <div class="shopgrid">${items.map(x=>`<button class="btn item" data-act="shopPick" data-arg="${x.id}" aria-pressed="${x.id===SH.sel}"><b>${x.nom}</b><span>${state(x)}</span></button>`).join('')}</div>
+    <div class="row between"><div class="row"><b class="gold">${it.nom}</b>${act}</div><button class="btn small ghost" data-act="home">◀ Accueil</button></div>`, focusSel||null);
+}
+function shopPick(id){ SH.sel=id; SH.pv[SH.cat]=id; A.sfx('select'); shopPanel(`[data-act=shopPick][data-arg="${id}"]`); }
+function shopTab(cat){ SH.cat=cat; SH.pv=Object.assign({},G.look); SH.sel=G.look[cat]; A.sfx('select'); shopPanel(`[data-act=shopTab][data-arg="${cat}"]`); }
+function shopBuy(){
+  const it=shopItem(SH.cat,SH.sel); if(owns(SH.cat,it.id)||(G.coins||0)<it.prix) return;
+  G.coins-=it.prix; G.owned=G.owned||[]; G.owned.push(ownKey(SH.cat,it.id)); G.look[SH.cat]=it.id; save(); A.sfx('level');
+  SH.pv=Object.assign({},G.look); shopPanel('[data-act=shopTab][aria-pressed=true]');
+}
+function shopEquip(){ const it=shopItem(SH.cat,SH.sel); if(!owns(SH.cat,it.id)) return; G.look[SH.cat]=it.id; save(); A.sfx('confirm'); SH.pv=Object.assign({},G.look); shopPanel('[data-act=shopTab][aria-pressed=true]'); }
+function drawShop(t,now,dt){
+  R(0,0,W,H,'#2e2340'); for(let y=0;y<120;y+=10) R(0,y,W,1,'#352a4a');
+  for(const sy of [38,78]){ R(14,sy,82,4,'#7a5a3a'); R(224,sy,82,4,'#7a5a3a'); }
+  [[24,30,'#e8455a'],[44,30,'#f2c230'],[64,30,'#3fbf6f'],[84,30,'#4f8cf5'],[234,30,'#ff8fc8'],[254,30,'#9ccc65'],[274,30,'#ffb74d'],[294,30,'#c58cf0']].forEach(([x,y,c],k)=>{ disc(x,y+2,5,'#14112a'); disc(x,y+2,4,c); disc(x,y+42,5,'#14112a'); disc(x,y+42,4,SHOP.color.items[k%7].sk.BODY); });
+  R(0,120,W,60,'#5a3d2a'); for(let x=0;x<W;x+=20) R(x,120,1,60,'#4a3222'); R(0,120,W,3,'#7a5a3a');
+  ell(160,150,46,9,'#14112a'); ell(160,148,44,8,'#f8c537'); ell(160,147,40,6,'#ffe066');
+  const lk=lookFrom(SH.pv||G.look), hop=Math.abs(Math.sin(t*3))*6;
+  const pv={face:1,onGround:true,vx:60,skin:lk.skin,hat:lk.hat,trail:lk.trail};
+  // traînée d’aperçu : elle s’éloigne vers la gauche comme si Globi courait
+  if(lk.trail!=='aucune' && now-SH.trT>70){ SH.trT=now; SH.tr.push({x:140+Math.random()*6,y:136+Math.random()*6,t0:now}); }
+  SH.tr=SH.tr.filter(q=>now-q.t0<900);
+  for(const q of SH.tr){ const a=(now-q.t0)/900; trailDraw(lk.trail,q.x-a*60,q.y,a,t); }
+  ctx.save(); ctx.translate(139,84-hop); ctx.scale(3,3); drawGlobi(0,0,t,pv,null); ctx.restore();
+  R(0,0,W,14,'rgba(10,20,60,.6)'); txt('BOUTIQUE DE GLOBI',6,4,'#ffd23f',8,'left',FONT_HUD);
+  drawATP(250,7,t); txt((G.coins||0)+' ATP',316,4,'#ffffff',8,'right',FONT_HUD);
+  const notOwned=['color','hat','trail'].some(c=>!owns(c,(SH.pv||G.look)[c]));
+  if(notOwned) txt('APERÇU',160,24,'#ffb347',8,'center',FONT_HUD);
+}
 
 /* ---------- Boucle de rendu ---------- */
 let last=performance.now();
@@ -2198,6 +2391,7 @@ function frame(now){
   try{
     if(scene==='title'||scene==='intro'||scene==='racemenu') drawTitle(t,now,dt);
     else if(scene==='race' && RC){ updateRace(dt,now); drawRace(t,now); }
+    else if(scene==='shop') drawShop(t,now,dt);
     else if(scene==='map') drawMap(t,now,dt);
     else if((scene==='prep'||scene==='level') && LV){
       if(scene==='level'){ updateLevel(dt,now); if(LV) LV.fx=LV.fx.filter(f=>now<f.t0+f.dur+50); }
